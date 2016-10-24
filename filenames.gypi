@@ -48,6 +48,7 @@
       'lib/common/api/exports/electron.js',
       'lib/common/api/native-image.js',
       'lib/common/api/shell.js',
+	  'lib/common/api/ipc-bus.js',
       'lib/common/init.js',
       'lib/common/parse-features-string.js',
       'lib/common/reset-search-paths.js',
