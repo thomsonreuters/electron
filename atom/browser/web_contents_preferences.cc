@@ -118,6 +118,15 @@ void WebContentsPreferences::AppendExtraCommandLineSwitches(
     else
       LOG(ERROR) << "preload url must be file:// protocol.";
   }
+  // Default preload script for sandbox (if there is no preload script in the App)
+  // The file is empty. This file will trigger the default preload sandbox code (for activating ipcRenderer)
+  else if (IsSandboxed(web_contents))
+  {
+    base::FilePath exec_path(command_line->GetProgram());
+    base::FilePath preload_path = exec_path.DirName().Append(FILE_PATH_LITERAL("preload.js"));
+    base::File preloadFile(preload_path, base::File::FLAG_CREATE);
+    command_line->AppendSwitchPath(switches::kPreloadScript, preload_path);
+  }
 
   // Run Electron APIs and preload script in isolated world
   bool isolated;
