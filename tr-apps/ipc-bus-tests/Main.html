@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8" />
+    <title>IPC Test App</title>
+    <script>
+
+        ipcBus.subscribe("ipc-tests/main", function() {
+
+        })
+
+        function doNewHtmlView() {
+
+            ipcBus.send("ipc-tests/subscribe-main-topic")
+        }
+
+        function doNewNodeInstance() {
+
+            ipcBus.send("ipc-tests/new-node-instance")
+        }
+
+        function doMainSubscribe() {
+
+            var topic = document.getElementById("mainTopic").value;
+            var option = document.createElement("option");
+            option.text = topic;
+            document.getElementById("mainSubscribedTopics").add(option)
+        }
+
+        ipcBus.subscribe("ipc-tests/node-instance/created", function () {
+
+        })
+
+    </script>
+</head>
+
+<body>
+
+    <b>APP ITEMS</b><br />
+    <a href="javascript:doNewHtmlView();">New HTML View</a>
+    &nbsp;|&nbsp;
+    <a href="javascript:doNewNodeInstance();">New Node Instance</a>
+    <hr />
+
+    <b>MAIN PROCESS</b><br />
+    <a href="javascript:doMainSubscribe();">Subscribe</a>&nbsp;:&nbsp;<input id="mainTopic" type="text" />
+    &nbsp;|&nbsp;
+    <a href="javascript:doMainUnsubscribe();">Unsubscribe</a>&nbsp;:&nbsp;<select id="mainSubscribedTopics"></select>
+    <hr />
+
+    <b>BROKER PROCESS</b><br />
+    <hr />
+
+    <b>NODE PROCESS</b>
+    <b>NODE PROCESS</b>
+    <a href="javascript:test();">Test</a><br />
+    <a href="javascript:openPopup();">Open Popup</a><br />
+    <a href="javascript:testOpener();">Test Opener</a><br />
+    <a href="javascript:sendIpcMessage();">Send IPC Message</a><br />
+
+</body>
+</html>
