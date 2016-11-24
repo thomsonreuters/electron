@@ -86,8 +86,8 @@ def main():
   copy_chrome_binary('mksnapshot')
   copy_license()
 
-  if PLATFORM != 'win32':
-    copy_api_json_schema()
+#if PLATFORM != 'win32':
+#    copy_api_json_schema()
 
   if PLATFORM == 'linux':
     strip_binaries()
