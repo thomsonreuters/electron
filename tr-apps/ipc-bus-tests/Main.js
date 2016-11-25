@@ -99,14 +99,19 @@ function onMainTopicMessage(topic, data) {
 }
 
 function doSubscribeMainTopic(topic) {
-
+    console.log("doSubscribeMainTopic:" + topic);
     ipcBus.subscribe(topic, onMainTopicMessage);
 }
 
 function doUnsubscribeMainTopic(topic) {
-
+    console.log("doUnsubscribeMainTopic:" + topic);
     ipcBus.unsubscribe(topic, onMainTopicMessage);
 }
+function doSendMainTopic(args) {
+    console.log("doSendMainTopic: topic:" + args["topic"] + " msg:" + args["msg"]);
+    ipcBus.send(args["topic"], args["msg"]);
+}
+
 
 function doNewHtmlViewInstance() {
     var childWindow = new BrowserWindow({ width: 800, height: 600, webPreferences: { sandbox: true } })
@@ -118,6 +123,10 @@ function doNewHtmlViewInstance() {
 let ipcBrokerInstance = null
 
 electronApp.on("ready", function () {
+
+    ipcMain.on("ipc-tests/ipc-master-unsubscribe", (event, topic) => doUnsubscribeMainTopic(topic));
+    ipcMain.on("ipc-tests/ipc-master-subscribe", (event, topic) => doSubscribeMainTopic(topic));
+    ipcMain.on("ipc-tests/ipc-master-send", (event, args) => doSendMainTopic(args));
 
     // Setup IPC Broker
     console.log("<MAIN> Starting IPC broker ...");
@@ -134,10 +143,16 @@ electronApp.on("ready", function () {
             ipcBus.subscribe("ipc-tests/kill-node-instance", (event, pid) => doKillNodeInstance(pid));
             ipcBus.subscribe("ipc-tests/subscribe-main-topic", (event, topic) => doSubscribeMainTopic(topic));
             ipcBus.subscribe("ipc-tests/unsubscribe-main-topic", (event, topic) => doUnsubscribeMainTopic(topic));
+            ipcBus.subscribe("ipc-tests/ipc-master-send", (event, args) => doSendMainTopic(args));
+
+            setInterval(function()
+            {
+                ipcBus.send("ipc-tests/main", "Master is here");
+            }, 300);
 
             // Open main window
             const mainWindow = new BrowserWindow({ width: 800, height: 600, webPreferences: { sandbox: true } })
-            mainWindow.loadURL("file://" + path.join(__dirname, "MainView.html"));
+            mainWindow.loadURL("file://" + path.join(__dirname, "RendererView.html"));
         })
     })
     ipcBrokerInstance.stdout.addListener("data", data => { console.log('<BROKER> ' + data.toString()); });
