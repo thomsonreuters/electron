@@ -23,7 +23,7 @@ const busPath = '/tr-ipc-bus/' + uuid.v4();
 console.log("IPC Bus Path : " + busPath);
 
 // IPC Bus
-const ipcClient = require("ipc-bus")("browser", busPath, ipcMain);
+const ipcBus = require("ipc-bus")("browser", busPath, ipcMain);
 
 // Helpers
 
@@ -95,17 +95,22 @@ function doTermInstance(pid) {
 }
 
 function onMainTopicMessage(topic, data) {
-
+    console.log("topic:" + topic + " data:" + data);
 }
 
 function doSubscribeMainTopic(topic) {
 
-    ipcClient.subscribe(topic, onMainTopicMessage);
+    ipcBus.subscribe(topic, onMainTopicMessage);
 }
 
 function doUnsubscribeMainTopic(topic) {
 
-    ipcClient.unsubscribe(topic, onMainTopicMessage);
+    ipcBus.unsubscribe(topic, onMainTopicMessage);
+}
+
+function doNewHtmlViewInstance() {
+    var childWindow = new BrowserWindow({ width: 800, height: 600, webPreferences: { sandbox: true } })
+    childWindow.loadURL("file://" + path.join(__dirname, "HtmlView.html"));
 }
 
 // Startup
@@ -121,17 +126,18 @@ electronApp.on("ready", function () {
 
         console.log("<MAIN> IPC broker is ready !");
         // Setup IPC Client (and renderer bridge)
-        ipcClient.connect(function () {
+        ipcBus.connect(function () {
 
             // Command hanlers
-            ipcClient.subscribe("ipc-tests/new-node-instance", () => doNewNodeInstance());
-            ipcClient.subscribe("ipc-tests/kill-node-instance", (event, pid) => doKillNodeInstance(pid));
-            ipcClient.subscribe("ipc-tests/subscribe-main-topic", (event, topic) => doSubscribeMainTopic(topic));
-            ipcClient.subscribe("ipc-tests/unsubscribe-main-topic", (event, topic) => doUnsubscribeMainTopic(topic));
+            ipcBus.subscribe("ipc-tests/new-node-instance", () => doNewNodeInstance());
+            ipcBus.subscribe("ipc-tests/new-htmlview-instance", (event, pid) => doNewHtmlViewInstance());
+            ipcBus.subscribe("ipc-tests/kill-node-instance", (event, pid) => doKillNodeInstance(pid));
+            ipcBus.subscribe("ipc-tests/subscribe-main-topic", (event, topic) => doSubscribeMainTopic(topic));
+            ipcBus.subscribe("ipc-tests/unsubscribe-main-topic", (event, topic) => doUnsubscribeMainTopic(topic));
 
             // Open main window
             const mainWindow = new BrowserWindow({ width: 800, height: 600, webPreferences: { sandbox: true } })
-            mainWindow.loadURL("file://" + path.join(__dirname, "Main.html"));
+            mainWindow.loadURL("file://" + path.join(__dirname, "MainView.html"));
         })
     })
     ipcBrokerInstance.stdout.addListener("data", data => { console.log('<BROKER> ' + data.toString()); });
