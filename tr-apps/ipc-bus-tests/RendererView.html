@@ -5,11 +5,11 @@
 <head>
     <meta charset="utf-8" />
     <title>IPC Test App</title>
-    <script src="MainView.js"></script>
+    <script src="RendererView.js"></script>
 </head>
 
 <body>
-    <div id="topicNameItem_template" topic-name="test" style="display:none">
+    <div id="topicNameItem_template" topic-name="test" topic-process="renderer" style="display:none">
         <b>Topic:</b><spam class="topicName">Test</spam> 
         <input type="text" onchange="doSendMessageToTopic(event)"></<input>
         <input type="button" onclick="doSendMessageToTopic(event)" value="Send"></<input>
@@ -22,25 +22,23 @@
     <a href="javascript:doNewNodeInstance();">New Node Instance</a>
     <hr />
 
-    <h3>MAIN PROCESS</h3>
-    <input id="mainTopic" type="text" /><input type="button" onclick="doSubscribeToTopic()"  value="Subscribe"></<input>
-    <div id="mainTopicsList"></div>
+    <h3>Master PROCESS</h3>
+    <input id="masterTopic" type="text" /><input type="button" onclick="doMasterSubscribeToTopic()"  value="Subscribe"></<input>
+    <div id="masterTopicsList"></div>
     <hr />
 
-    <h3>BROKER PROCESS</h3>
+    <h3>Renderer PROCESS</h3>
+    <input id="rendererTopic" type="text" /><input type="button" onclick="doRendererSubscribeToTopic()"  value="Subscribe"></<input>
+    <div id="rendererTopicsList"></div>
     <hr />
 
-    <h3>NODE PROCESS</h3>
-    <a href="javascript:test();">Test</a><br/>
-    <a href="javascript:openPopup();">Open Popup</a><br />
-    <a href="javascript:testOpener();">Test Opener</a><br />
-    <a href="javascript:sendIpcMessage();">Send IPC Message</a><br />
+    <h3>Node PROCESS</h3>
     <hr />
   
     <input type="button" onclick="doQueryBrokerState()" value="Refresh IPC Status"></input>
     <table id="brokerStatesList" border="1">
         <tr> 
-            <th>topic</th>
+            <th>Topic</th>
             <th>Conn Count</th>
             <th>Sub Count</th>
         </tr>

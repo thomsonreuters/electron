@@ -25,17 +25,17 @@ const newResolveFilename = function (request, parent, isMain) {
 
 Module._resolveFilename = newResolveFilename;
 
-const ipcClient = require("ipc-bus")()
+const ipcBus = require("ipc-bus")()
 
 function doSubscribeTopic(data) {
 
-    ipcClient.subscribe(data.topic)
+    ipcBus.subscribe(data.topic)
 }
 
-ipcClient.connect(function() {
+ipcBus.connect(function() {
 
-    ipcClient.subscribe("ipc-tests/node-instance/" + process.pid + "/subscribe-topic", function(data) {
+    ipcBus.subscribe("ipc-tests/node-instance/" + process.pid + "/subscribe-topic", function(data) {
 
-        ipcClient.subscribe(data.topic)
+        ipcBus.subscribe(data.topic)
     })
 })
