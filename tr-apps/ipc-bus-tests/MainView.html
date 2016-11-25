@@ -1,0 +1,49 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8" />
+    <title>IPC Test App</title>
+    <script src="MainView.js"></script>
+</head>
+
+<body>
+    <div id="topicNameItem_template" topic-name="test" style="display:none">
+        <b>Topic:</b><spam class="topicName">Test</spam> 
+        <input type="text" onchange="doSendMessageToTopic(event)"></<input>
+        <input type="button" onclick="doSendMessageToTopic(event)" value="Send"></<input>
+        <input type="button" onclick="doUnsubscribeFromTopic(event)" value="Unsubscribe"></<input>
+    </div>
+
+    <h3>APP ITEMS</h3>
+    <a href="javascript:doNewHtmlView();">New HTML View</a>
+    &nbsp;|&nbsp;
+    <a href="javascript:doNewNodeInstance();">New Node Instance</a>
+    <hr />
+
+    <h3>MAIN PROCESS</h3>
+    <a href="javascript:doSubscribeToTopic();">Subscribe</a>&nbsp;:&nbsp;<input id="mainTopic" type="text" />
+    <div id="mainTopicsList"></div>
+    <hr />
+
+    <h3>BROKER PROCESS</h3>
+    <hr />
+
+    <h3>NODE PROCESS</h3>
+    <a href="javascript:test();">Test</a><br/>
+    <a href="javascript:openPopup();">Open Popup</a><br />
+    <a href="javascript:testOpener();">Test Opener</a><br />
+    <a href="javascript:sendIpcMessage();">Send IPC Message</a><br />
+    <hr />
+  
+    <input type="button" onclick="doQueryBrokerState()" value="Status"></input>
+    <table id="brokerStatesList" border="1">
+        <tr> 
+            <th>topic</th>
+            <th>Conn Count</th>
+            <th>Sub Count</th>
+        </tr>
+    </table>
+</body>
+</html>
