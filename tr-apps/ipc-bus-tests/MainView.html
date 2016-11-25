@@ -23,7 +23,7 @@
     <hr />
 
     <h3>MAIN PROCESS</h3>
-    <a href="javascript:doSubscribeToTopic();">Subscribe</a>&nbsp;:&nbsp;<input id="mainTopic" type="text" />
+    <input id="mainTopic" type="text" /><input type="button" onclick="doSubscribeToTopic()"  value="Subscribe"></<input>
     <div id="mainTopicsList"></div>
     <hr />
 
@@ -37,7 +37,7 @@
     <a href="javascript:sendIpcMessage();">Send IPC Message</a><br />
     <hr />
   
-    <input type="button" onclick="doQueryBrokerState()" value="Status"></input>
+    <input type="button" onclick="doQueryBrokerState()" value="Refresh IPC Status"></input>
     <table id="brokerStatesList" border="1">
         <tr> 
             <th>topic</th>
