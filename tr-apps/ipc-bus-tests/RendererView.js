@@ -56,7 +56,12 @@ function doSubscribeToTopic(event) {
     }
     if (topicProcess == "master")
     {
-        ipcBus.send("ipc-tests/subscribe-main-topic", topicName);
+        ipcBus.send("ipc-tests/node-subscribe-topic", topicName);
+//        ipcRenderer.send("ipc-tests/ipc-master-subscribe", topicName);
+    }
+    if (topicProcess == "node")
+    {
+        ipcBus.send("ipc-tests/master-subscribe-topic", topicName);
 //        ipcRenderer.send("ipc-tests/ipc-master-subscribe", topicName);
     }
     console.log(topicProcess + " topicName : " + topicName + " - subscribe");
@@ -82,7 +87,12 @@ function doSendMessageToTopic(event){
     }
     if (topicProcess == "master")
     {
-        ipcBus.send("ipc-tests/ipc-master-send", { "topic" : topicName, "msg" : topicMsg});
+        ipcBus.send("ipc-tests/master-subscribe-send", { "topic" : topicName, "msg" : topicMsg});
+//        ipcRenderer.send("ipc-tests/ipc-master-send", { "topic" : topicName, "msg" : target.value} );
+    }
+    if (topicProcess == "node")
+    {
+        ipcBus.send("ipc-tests/node-subscribe-send", { "topic" : topicName, "msg" : topicMsg});
 //        ipcRenderer.send("ipc-tests/ipc-master-send", { "topic" : topicName, "msg" : target.value} );
     }
     console.log("topicName : " + topicName + " - send:" + topicMsg);
@@ -106,7 +116,12 @@ function doUnsubscribeFromTopic(event){
     }
     if (processTarget == "master")
     {
-        ipcBus.send("ipc-tests/unsubscribe-main-topic", topicName);
+        ipcBus.send("ipc-tests/master-unsubscribe-topic", topicName);
+//        ipcRenderer.send("ipc-tests/ipc-master-unsubscribe", topicName);
+    }
+    if (processTarget == "node")
+    {
+        ipcBus.send("ipc-tests/node-unsubscribe-topic", topicName);
 //        ipcRenderer.send("ipc-tests/ipc-master-unsubscribe", topicName);
     }
     console.log(processTarget + " topicName : " + topicName + " - unsubscribe");
@@ -136,6 +151,10 @@ function onIPC_renderer(msgTopic, msgContent) {
 
 function onIPC_master(msgTopic, args) {
     onIPC_received("master", args["topic"], args["msg"]);
+}
+
+function onIPC_node(msgTopic, args) {
+    onIPC_received("node", args["topic"], args["msg"]);
 }
 
 function doQueryBrokerState() {
@@ -168,7 +187,8 @@ function onIPC_BrokerStatusTopic(msgTopic, msgContent) {
 
 ipcBus.subscribe('IPC_BUS_BROKER_STATUS_TOPIC', onIPC_BrokerStatusTopic);
 
-ipcBus.subscribe("ipc-tests/main-received", onIPC_master);
+ipcBus.subscribe("ipc-tests/master-received-topic", onIPC_master);
+ipcBus.subscribe("ipc-tests/node-received-topic", onIPC_node);
 
 //ipcBus.subscribe("ipc-tests/node-instance/created", function () {})
 
