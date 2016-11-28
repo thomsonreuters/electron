@@ -5,6 +5,16 @@
 <head>
     <meta charset="utf-8" />
     <title>IPC Test App</title>
+    <style rel="stylesheet" type="text/css" media="screen">
+legend {
+    font-size:  1.4em;
+    font-weight:  bold;
+    position:  relative;
+    top:  -.4em;
+}
+
+    </style>
+
     <script src="RendererView.js"></script>
 </head>
 
@@ -16,11 +26,6 @@
         <input type="text" class="topicReceived"></<input>
         <input type="button" onclick="doClearTopic(event)" value="Clear"></<input>
     </div>
-
-    <h3>APP ITEMS</h3>
-    <a href="javascript:doNewHtmlView();">New HTML View</a> &nbsp;|&nbsp;
-    <a href="javascript:doNewNodeInstance();">New Node Instance</a>
-    <hr />
 
     <fieldset class="master">
         <legend>Master</legend>
@@ -42,6 +47,8 @@
         <div class="SubscriptionsList"></div>
         <hr />
     </fieldset>
+    </br>
+    </br>
 
     <fieldset class="renderer">
         <legend>Renderer</legend>
@@ -62,7 +69,31 @@
         <div class="SubscriptionsList"></div>
         <hr />
     </fieldset>
+    </br>
+    </br>
 
+    <fieldset class="node">
+        <legend>Renderer</legend>
+        <fieldset class="topicSubscribe">
+            Topic Name :
+            <input class="topicName" type="text" />
+            <input type="button" onclick="doSubscribeToTopic(event)" value="Subscribe"></<input>
+            </br>
+        </fieldset>
+        <fieldset class="topicSend">
+            Topic Name :
+            <input class="topicName" type="text" /> Message :
+            <input class="topicMsg" type="text" />
+            <input type="button" onclick="doSendMessageToTopic(event)" value="Send"></<input>
+        </fieldset>
+
+        <h3>Subscriptions</h3>
+        <div class="SubscriptionsList"></div>
+        <hr />
+    </fieldset>
+    </br>
+    </br>
+    
     <input type="button" onclick="doQueryBrokerState()" value="Refresh IPC Status"></input>
     <table id="brokerStatesList" border="1">
         <tr>

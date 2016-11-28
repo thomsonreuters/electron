@@ -65,9 +65,6 @@ function NodeInstance() {
     this.process.stderr.addListener("data", data => { console.log('<NODE> ' + data.toString()); });
     console.log("<MAIN> Node instance #" + this.process.pid + " started !")
 
-    this.window = new BrowserWindow({ width: 800, height: 600, webPreferences: { sandbox: true }, instancePid: this.process.pid })
-    this.window.loadURL("file://" + __dirname + "/NodeInstanceView.html");
-
     nodeInstances.push(this);
 
     this.term = function() {
@@ -94,22 +91,22 @@ function doTermInstance(pid) {
     nodeInstance.term();
 }
 
-function onMainTopicMessage(topic, data) {
+function onTopicMessage(topic, data) {
     console.log("topic:" + topic + " data:" + data);
-    ipcBus.send("ipc-tests/main-received", { "topic" : topic, "msg" : data});
+    ipcBus.send("ipc-tests/master-received-topic", { "topic" : topic, "msg" : data});
 }
 
-function doSubscribeMainTopic(topic) {
-    console.log("doSubscribeMainTopic:" + topic);
-    ipcBus.subscribe(topic, onMainTopicMessage);
+function doSubscribeTopic(topic) {
+    console.log("doSubscribeTopic:" + topic);
+    ipcBus.subscribe(topic, onTopicMessage);
 }
 
-function doUnsubscribeMainTopic(topic) {
+function doUnsubscribeTopic(topic) {
     console.log("doUnsubscribeMainTopic:" + topic);
-    ipcBus.unsubscribe(topic, onMainTopicMessage);
+    ipcBus.unsubscribe(topic, onTopicMessage);
 }
 
-function doSendMainTopic(args) {
+function doSendOnTopic(args) {
     console.log("doSendMainTopic: topic:" + args["topic"] + " msg:" + args["msg"]);
     ipcBus.send(args["topic"], args["msg"]);
 }
@@ -127,7 +124,7 @@ let ipcBrokerInstance = null
 electronApp.on("ready", function () {
 
 //    ipcMain.on("ipc-tests/ipc-master-unsubscribe", (event, topic) => doUnsubscribeMainTopic(topic));
-//    ipcMain.on("ipc-tests/ipc-master-subscribe", (event, topic) => doSubscribeMainTopic(topic));
+//    ipcMain.on("ipc-tests/ipc-master-subscribe", (event, topic) => doSubscribeTopic(topic));
 //    ipcMain.on("ipc-tests/ipc-master-send", (event, args) => doSendMainTopic(args));
 
     // Setup IPC Broker
@@ -143,13 +140,16 @@ electronApp.on("ready", function () {
             ipcBus.subscribe("ipc-tests/new-node-instance", () => doNewNodeInstance());
             ipcBus.subscribe("ipc-tests/new-htmlview-instance", (event, pid) => doNewHtmlViewInstance());
             ipcBus.subscribe("ipc-tests/kill-node-instance", (event, pid) => doKillNodeInstance(pid));
-            ipcBus.subscribe("ipc-tests/subscribe-main-topic", (event, topic) => doSubscribeMainTopic(topic));
-            ipcBus.subscribe("ipc-tests/unsubscribe-main-topic", (event, topic) => doUnsubscribeMainTopic(topic));
-            ipcBus.subscribe("ipc-tests/ipc-master-send", (event, args) => doSendMainTopic(args));
+
+            ipcBus.subscribe("ipc-tests/master-subscribe-topic", (event, topic) => doSubscribeTopic(topic));
+            ipcBus.subscribe("ipc-tests/master-unsubscribe-topic", (event, topic) => doUnsubscribeTopic(topic));
+            ipcBus.subscribe("ipc-tests/master-send-topic", (event, args) => doSendOnTopic(args));
 
             // Open main window
             const mainWindow = new BrowserWindow({ width: 800, height: 600, webPreferences: { sandbox: true } })
             mainWindow.loadURL("file://" + path.join(__dirname, "RendererView.html"));
+
+            doNewNodeInstance();
         })
     })
     ipcBrokerInstance.stdout.addListener("data", data => { console.log('<BROKER> ' + data.toString()); });
