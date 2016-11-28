@@ -9,43 +9,83 @@ function doNewNodeInstance() {
     ipcBus.send("ipc-tests/new-node-instance")
 }
 
-function doRendererSubscribeToTopic() {
-    console.log("doRendererSubscribeToTopic");
-    doSubscribeToTopic("renderer");
+function getProcessType(elt)
+{
+      if (elt != null)
+      {
+          if (elt.classList.contains("renderer"))
+          {
+              return "renderer"
+          }
+          if (elt.classList.contains("master"))
+          {
+              return "master"
+          }
+          if (elt.classList.contains("node"))
+          {
+              return "node"
+          }
+      }
+      return getProcessType(elt.parentElement);
 }
 
-function doMasterSubscribeToTopic() {
-    console.log("doMasterSubscribeToTopic");
-    doSubscribeToTopic("master");
-}
+function doSubscribeToTopic(event) {
+    var target = event.target;
+    var topicActionsElt = target.parentElement;
 
-function doSubscribeToTopic(processTarget) {
-    var mainTopicElt = document.getElementById(processTarget + "Topic");
+    var topicProcess = getProcessType(target);
 
-    var topicName = mainTopicElt.value;
+    var topicNameElt = topicActionsElt.querySelector(".topicName");
+    var topicName = topicNameElt.value;
+
     var topicItemElt = document.getElementById("topicNameItem_template");
     var topicItemElt = topicItemElt.cloneNode(true);
     topicItemElt.id = "";
-    topicItemElt.setAttribute("topic-name", topicName);
-    topicItemElt.setAttribute("topic-process", processTarget);
+    topicItemElt.classList.add("subscription-" + topicName);
 
     var topicNameElt = topicItemElt.querySelector(".topicName");
     topicNameElt.textContent = topicName;
 
-    var topicsListElt = document.getElementById(processTarget + "TopicsList");
-    topicsListElt.appendChild(topicItemElt);
+    var SubscriptionsListElt = document.querySelector("fieldset." + topicProcess + " > div");
+    SubscriptionsListElt.appendChild(topicItemElt);
     topicItemElt.style.display = "block";
 
-    if (processTarget == "renderer")
+    if (topicProcess == "renderer")
     {
         ipcBus.subscribe(topicName, onIPC_renderer);
     }
-    if (processTarget == "master")
+    if (topicProcess == "master")
     {
         ipcBus.send("ipc-tests/subscribe-main-topic", topicName);
 //        ipcRenderer.send("ipc-tests/ipc-master-subscribe", topicName);
     }
-    console.log(processTarget + " topicName : " + topicName + " - subscribe");
+    console.log(topicProcess + " topicName : " + topicName + " - subscribe");
+}
+
+function doSendMessageToTopic(event){
+    console.log("doSendMessageToTopic:" + event);
+
+    var target = event.target;
+    var topicItemElt = target.parentElement;
+
+    var topicProcess = getProcessType(target);
+
+    var topicNameElt = topicItemElt.querySelector(".topicName");
+    var topicName = topicNameElt.value;
+
+    var topicMsgElt = topicItemElt.querySelector(".topicMsg");
+    var topicMsg = topicMsgElt.value;
+
+    if (topicProcess == "renderer")
+    {
+        ipcBus.send(topicName, topicMsg);
+    }
+    if (topicProcess == "master")
+    {
+        ipcBus.send("ipc-tests/ipc-master-send", { "topic" : topicName, "msg" : topicMsg});
+//        ipcRenderer.send("ipc-tests/ipc-master-send", { "topic" : topicName, "msg" : target.value} );
+    }
+    console.log("topicName : " + topicName + " - send:" + topicMsg);
 }
 
 function doUnsubscribeFromTopic(event){
@@ -53,10 +93,12 @@ function doUnsubscribeFromTopic(event){
 
     var target = event.target;
     var topicItemElt = target.parentElement;
-    var topicName = topicItemElt.getAttribute("topic-name");
-    var processTarget = topicItemElt.getAttribute("topic-process");
-    var topicsListElt = document.getElementById(processTarget + "TopicsList");
-    topicsListElt.removeChild(topicItemElt);
+    var topicProcess = getProcessType(target);
+    var topicNameElt = topicItemElt.querySelector(".topicName");
+    var topicName = topicNameElt.value;
+
+    var SubscriptionsListElt = document.querySelector("fieldset." + topicProcess + " > div");
+    SubscriptionsListElt.removeChild(topicItemElt);
 
     if (processTarget == "renderer")
     {
@@ -70,24 +112,30 @@ function doUnsubscribeFromTopic(event){
     console.log(processTarget + " topicName : " + topicName + " - unsubscribe");
 }
 
-function doSendMessageToTopic(event){
-    console.log("doSendMessageToTopic:" + event);
-
+function doClearTopic(event)
+{
     var target = event.target;
     var topicItemElt = target.parentElement;
-    var topicName = topicItemElt.getAttribute("topic-name");
-    var processTarget = topicItemElt.getAttribute("topic-process");
+    var topicReceivedElt = topicItemElt.querySelector(".topicReceived");
+    topicReceivedElt.value = "";
+}
 
-    if (processTarget == "renderer")
-    {
-        ipcBus.send(target.value);
-    }
-    if (processTarget == "master")
-    {
-        ipcBus.send("ipc-tests/ipc-master-send", { "topic" : topicName, "msg" : target.value});
-//        ipcRenderer.send("ipc-tests/ipc-master-send", { "topic" : topicName, "msg" : target.value} );
-    }
-    console.log("topicName : " + topicName + " - send:" + target.value);
+function onIPC_received(topicProcess, topicName, msgContent)
+{
+    console.log(topicProcess + " msgTopic:" + topicName + " msgContent:" + msgContent)
+
+    var SubscriptionsListElt = document.querySelector("fieldset." + topicProcess + " > div");
+    var topicItemElt = SubscriptionsListElt.querySelector(".subscription-" + topicName);
+    var topicReceivedElt = topicItemElt.querySelector(".topicReceived");
+    topicReceivedElt.value += msgContent;
+}
+
+function onIPC_renderer(msgTopic, msgContent) {
+    onIPC_received("renderer", msgTopic, msgContent);
+}
+
+function onIPC_master(msgTopic, args) {
+    onIPC_received("master", args["topic"], args["msg"]);
 }
 
 function doQueryBrokerState() {
@@ -98,6 +146,7 @@ function onIPC_BrokerStatusTopic(msgTopic, msgContent) {
     console.log("queryBrokerState - msgTopic:" + msgTopic + " msgContent:" + msgContent)
 
     var brokerStatesListElt = document.getElementById("brokerStatesList");
+    // Keep the header
     while (brokerStatesListElt.rows.length > 1) {
         brokerStatesListElt.deleteRow(1);
     }   
@@ -115,19 +164,11 @@ function onIPC_BrokerStatusTopic(msgTopic, msgContent) {
     }
 }
 
-function onIPC_renderer(msgTopic, msgContent) {
-    console.log("renderer msgTopic:" + msgTopic + " msgContent:" + msgContent)
-}
-
-function onIPC_master(msgTopic, msgContent) {
-    console.log("master msgTopic:" + msgTopic + " msgContent:" + msgContent)
-}
-
 //var ipcRenderer = require('electron').ipcRenderer;
 
 ipcBus.subscribe('IPC_BUS_BROKER_STATUS_TOPIC', onIPC_BrokerStatusTopic);
 
-ipcBus.subscribe("ipc-tests/main", onIPC_master);
+ipcBus.subscribe("ipc-tests/main-received", onIPC_master);
 
 //ipcBus.subscribe("ipc-tests/node-instance/created", function () {})
 

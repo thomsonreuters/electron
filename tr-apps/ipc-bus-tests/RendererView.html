@@ -10,38 +10,67 @@
 
 <body>
     <div id="topicNameItem_template" topic-name="test" topic-process="renderer" style="display:none">
-        <b>Topic:</b><spam class="topicName">Test</spam> 
-        <input type="text" onchange="doSendMessageToTopic(event)"></<input>
-        <input type="button" onclick="doSendMessageToTopic(event)" value="Send"></<input>
+        <b>Topic Name:</b>
+        <spam class="topicName">Test</spam>
         <input type="button" onclick="doUnsubscribeFromTopic(event)" value="Unsubscribe"></<input>
+        <input type="text" class="topicReceived"></<input>
+        <input type="button" onclick="doClearTopic(event)" value="Clear"></<input>
     </div>
 
     <h3>APP ITEMS</h3>
-    <a href="javascript:doNewHtmlView();">New HTML View</a>
-    &nbsp;|&nbsp;
+    <a href="javascript:doNewHtmlView();">New HTML View</a> &nbsp;|&nbsp;
     <a href="javascript:doNewNodeInstance();">New Node Instance</a>
     <hr />
 
-    <h3>Master PROCESS</h3>
-    <input id="masterTopic" type="text" /><input type="button" onclick="doMasterSubscribeToTopic()"  value="Subscribe"></<input>
-    <div id="masterTopicsList"></div>
-    <hr />
+    <fieldset class="master">
+        <legend>Master</legend>
+        <fieldset class="topicSubscribe">
+            Topic Name :
+            <input class="topicName" type="text" />
+            <input type="button" onclick="doSubscribeToTopic(event)" value="Subscribe"></<input>
+            </br>
+        </fieldset>
+        <fieldset class="topicSend">
+            Topic Name :
+            <input class="topicName" type="text" /> Message :
+            <input class="topicMsg" type="text" />
+            <input type="button" onclick="doSendMessageToTopic(event)" value="Send"></<input>
+            </br>
+        </fieldset>
 
-    <h3>Renderer PROCESS</h3>
-    <input id="rendererTopic" type="text" /><input type="button" onclick="doRendererSubscribeToTopic()"  value="Subscribe"></<input>
-    <div id="rendererTopicsList"></div>
-    <hr />
+        <h3>Subscriptions</h3>
+        <div class="SubscriptionsList"></div>
+        <hr />
+    </fieldset>
 
-    <h3>Node PROCESS</h3>
-    <hr />
-  
+    <fieldset class="renderer">
+        <legend>Renderer</legend>
+        <fieldset class="topicSubscribe">
+            Topic Name :
+            <input class="topicName" type="text" />
+            <input type="button" onclick="doSubscribeToTopic(event)" value="Subscribe"></<input>
+            </br>
+        </fieldset>
+        <fieldset class="topicSend">
+            Topic Name :
+            <input class="topicName" type="text" /> Message :
+            <input class="topicMsg" type="text" />
+            <input type="button" onclick="doSendMessageToTopic(event)" value="Send"></<input>
+        </fieldset>
+
+        <h3>Subscriptions</h3>
+        <div class="SubscriptionsList"></div>
+        <hr />
+    </fieldset>
+
     <input type="button" onclick="doQueryBrokerState()" value="Refresh IPC Status"></input>
     <table id="brokerStatesList" border="1">
-        <tr> 
+        <tr>
             <th>Topic</th>
             <th>Conn Count</th>
             <th>Sub Count</th>
         </tr>
     </table>
 </body>
+
 </html>
