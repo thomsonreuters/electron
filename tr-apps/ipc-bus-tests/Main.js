@@ -146,7 +146,7 @@ electronApp.on("ready", function () {
             ipcBus.subscribe("ipc-tests/master-send-topic", (event, args) => doSendOnTopic(args));
 
             // Open main window
-            const mainWindow = new BrowserWindow({ width: 800, height: 600, webPreferences: { sandbox: true } })
+            const mainWindow = new BrowserWindow({ width: 800, height: 900, webPreferences: { sandbox: true } })
             mainWindow.loadURL("file://" + path.join(__dirname, "RendererView.html"));
 
             doNewNodeInstance();
