@@ -92,22 +92,22 @@ function doTermInstance(pid) {
 }
 
 function onTopicMessage(topic, data) {
-    console.log("topic:" + topic + " data:" + data);
+    console.log("master - topic:" + topic + " data:" + data);
     ipcBus.send("ipc-tests/master-received-topic", { "topic" : topic, "msg" : data});
 }
 
 function doSubscribeTopic(topic) {
-    console.log("doSubscribeTopic:" + topic);
+    console.log("master - doSubscribeTopic:" + topic);
     ipcBus.subscribe(topic, onTopicMessage);
 }
 
 function doUnsubscribeTopic(topic) {
-    console.log("doUnsubscribeMainTopic:" + topic);
+    console.log("master - doUnsubscribeTopic:" + topic);
     ipcBus.unsubscribe(topic, onTopicMessage);
 }
 
 function doSendOnTopic(args) {
-    console.log("doSendMainTopic: topic:" + args["topic"] + " msg:" + args["msg"]);
+    console.log("master - doSendOnTopic: topic:" + args["topic"] + " msg:" + args["msg"]);
     ipcBus.send(args["topic"], args["msg"]);
 }
 
