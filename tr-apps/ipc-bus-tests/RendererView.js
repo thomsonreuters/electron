@@ -56,12 +56,12 @@ function doSubscribeToTopic(event) {
     }
     if (topicProcess == "master")
     {
-        ipcBus.send("ipc-tests/node-subscribe-topic", topicName);
+        ipcBus.send("ipc-tests/master-subscribe-topic", topicName);
 //        ipcRenderer.send("ipc-tests/ipc-master-subscribe", topicName);
     }
     if (topicProcess == "node")
     {
-        ipcBus.send("ipc-tests/master-subscribe-topic", topicName);
+        ipcBus.send("ipc-tests/node-subscribe-topic", topicName);
 //        ipcRenderer.send("ipc-tests/ipc-master-subscribe", topicName);
     }
     console.log(topicProcess + " topicName : " + topicName + " - subscribe");
@@ -87,12 +87,12 @@ function doSendMessageToTopic(event){
     }
     if (topicProcess == "master")
     {
-        ipcBus.send("ipc-tests/master-subscribe-send", { "topic" : topicName, "msg" : topicMsg});
+        ipcBus.send("ipc-tests/master-send-topic", { "topic" : topicName, "msg" : topicMsg});
 //        ipcRenderer.send("ipc-tests/ipc-master-send", { "topic" : topicName, "msg" : target.value} );
     }
     if (topicProcess == "node")
     {
-        ipcBus.send("ipc-tests/node-subscribe-send", { "topic" : topicName, "msg" : topicMsg});
+        ipcBus.send("ipc-tests/node-send-topic", { "topic" : topicName, "msg" : topicMsg});
 //        ipcRenderer.send("ipc-tests/ipc-master-send", { "topic" : topicName, "msg" : target.value} );
     }
     console.log("topicName : " + topicName + " - send:" + topicMsg);
