@@ -141,8 +141,11 @@ function onIPC_received(topicProcess, topicName, msgContent)
 
     var SubscriptionsListElt = document.querySelector("fieldset." + topicProcess + " > div");
     var topicItemElt = SubscriptionsListElt.querySelector(".subscription-" + topicName);
-    var topicReceivedElt = topicItemElt.querySelector(".topicReceived");
-    topicReceivedElt.value += msgContent;
+    if (topicItemElt != null)
+    {
+        var topicReceivedElt = topicItemElt.querySelector(".topicReceived");
+        topicReceivedElt.value += msgContent + "\n";
+    }
 }
 
 function onIPC_renderer(msgTopic, msgContent) {
