@@ -1,14 +1,3 @@
-
-function doNewHtmlView() {
-
-    ipcBus.send("ipc-tests/new-htmlview-instance")
-}
-
-function doNewNodeInstance() {
-
-    ipcBus.send("ipc-tests/new-node-instance")
-}
-
 function getProcessType(elt)
 {
       if (elt != null)
@@ -193,5 +182,4 @@ ipcBus.subscribe('IPC_BUS_BROKER_STATUS_TOPIC', onIPC_BrokerStatusTopic);
 ipcBus.subscribe("ipc-tests/master-received-topic", onIPC_master);
 ipcBus.subscribe("ipc-tests/node-received-topic", onIPC_node);
 
-//ipcBus.subscribe("ipc-tests/node-instance/created", function () {})
 

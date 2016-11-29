@@ -25,6 +25,8 @@ const newResolveFilename = function (request, parent, isMain) {
 
 Module._resolveFilename = newResolveFilename;
 
+const ipcBus = require("ipc-bus")()
+
 function onTopicMessage(topic, data) {
     console.log("node - topic:" + topic + " data:" + data);
     ipcBus.send("ipc-tests/node-received-topic", { "topic" : topic, "msg" : data});
@@ -45,12 +47,44 @@ function doSendOnTopic(args) {
     ipcBus.send(args["topic"], args["msg"]);
 }
 
+function dispatchMessage(msg)
+{
+    console.log("node - receive message:" + msg);
+    if (isConnected == false)
+    {
+        console.log("node - delay message:" + msg);
+        msgs.push(msg);
+    }
+    else
+    {
+        console.log("node - execute message:" + msg);
+        var msgJSON = JSON.parse(msg);
+        if (msgJSON["action"] == "subscribe")
+        {
+            doSubscribeTopic(msgJSON["topic"]);
+        }
+        if (msgJSON["action"] == "unsubscribe")
+        {
+            doUnsubscribeTopic(msgJSON["topic"]);
+        }
+        if (msgJSON["action"] == "send")
+        {
+            doSendOnTopic(msgJSON["args"]);
+        }
+    }
+}
 
-const ipcBus = require("ipc-bus")()
+
+var isConnected = false;
+var msgs = [];
 
 ipcBus.connect(function () {
-    // Command hanlers
-    ipcBus.subscribe("ipc-tests/node-subscribe-topic", (event, topic) => doSubscribeTopic(topic));
-    ipcBus.subscribe("ipc-tests/node-unsubscribe-topic", (event, topic) => doUnsubscribeTopic(topic));
-    ipcBus.subscribe("ipc-tests/node-send-topic", (event, args) => doSendOnTopic(args));
+    isConnected = true;
+    for(var msg in msgs)
+    {
+        dispatchMessage(msg);
+    }
+    msgs = [];
 })
+
+process.on("message", dispatchMessage);

@@ -76,12 +76,6 @@ function NodeInstance() {
 
 // Commands
 
-function doNewNodeInstance() {
-
-    console.log("<MAIN> Starting new Node instance ...")
-    const instance = new NodeInstance();
-}
-
 function doTermInstance(pid) {
 
     console.log("<MAIN> Killing instance #" + pid + " ...");
@@ -112,14 +106,42 @@ function doSendOnTopic(args) {
 }
 
 
-function doNewHtmlViewInstance() {
-    var childWindow = new BrowserWindow({ width: 800, height: 600, webPreferences: { sandbox: true } })
-    childWindow.loadURL("file://" + path.join(__dirname, "HtmlView.html"));
+function doNodeSubscribeTopic(topic) {
+    console.log("master - send to node subscribe:" + topic);
+
+    var msgJSON = 
+    { 
+        "action":"subscribe",
+        "topic":topic
+    };
+    nodeInstance.process.send(JSON.stringify(msgJSON));
 }
+
+function doNodeUnsubscribeTopic(topic) {
+    console.log("master - send to node unsubscribe:" + topic);
+    var msgJSON = 
+    { 
+        "action":"unsubscribe",
+        "topic":topic
+    };
+    nodeInstance.process.send(JSON.stringify(msgJSON));
+}
+
+function doNodeSendOnTopic(args) {
+    console.log("master - send to node send:" + args);
+    var msgJSON = 
+    { 
+        "action":"send",
+        "args":args
+    };
+    nodeInstance.process.send(JSON.stringify(msgJSON));
+}
+
 
 // Startup
 
 let ipcBrokerInstance = null
+var nodeInstance = null;
 
 electronApp.on("ready", function () {
 
@@ -145,11 +167,15 @@ electronApp.on("ready", function () {
             ipcBus.subscribe("ipc-tests/master-unsubscribe-topic", (event, topic) => doUnsubscribeTopic(topic));
             ipcBus.subscribe("ipc-tests/master-send-topic", (event, args) => doSendOnTopic(args));
 
+            ipcBus.subscribe("ipc-tests/node-subscribe-topic", (event, topic) => doNodeSubscribeTopic(topic));
+            ipcBus.subscribe("ipc-tests/node-unsubscribe-topic", (event, topic) => doNodeUnsubscribeTopic(topic));
+            ipcBus.subscribe("ipc-tests/node-send-topic", (event, args) => doNodeSendOnTopic(args));
+
             // Open main window
             const mainWindow = new BrowserWindow({ width: 800, height: 900, webPreferences: { sandbox: true } })
             mainWindow.loadURL("file://" + path.join(__dirname, "RendererView.html"));
 
-            doNewNodeInstance();
+            nodeInstance = new NodeInstance();
         })
     })
     ipcBrokerInstance.stdout.addListener("data", data => { console.log('<BROKER> ' + data.toString()); });
