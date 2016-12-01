@@ -1,9 +1,9 @@
 {
     "name": "tr-electron",
 	"version": "1.4.10", 
-	"author": "Eikon Desktop Browser Integration <Thomson-EikonDesktopBrowserIntegration@Thomsonreuters.com> (https://thehub.thomsonreuters.com/groups/eikon-chromium)"
+	"author": "Eikon Desktop Browser Integration <Thomson-EikonDesktopBrowserIntegration@Thomsonreuters.com> (https://thehub.thomsonreuters.com/groups/eikon-chromium)",
 	"homepage": "https://github.com/thomsonreuters/electron", 
-	"main": "index.js"
+	"main": "index.js",
     "bin": {
         "tr-electron": "cli.js"
     }, 
