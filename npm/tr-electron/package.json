@@ -1,8 +1,12 @@
 {
+    "name": "tr-electron",
+	"version": "1.4.10", 
+	"author": "Eikon Desktop Browser Integration <Thomson-EikonDesktopBrowserIntegration@Thomsonreuters.com> (https://thehub.thomsonreuters.com/groups/eikon-chromium)"
+	"homepage": "https://github.com/thomsonreuters/electron", 
+	"main": "index.js"
     "bin": {
         "tr-electron": "cli.js"
     }, 
-    "version": "1.4.3", 
     "repository": {
         "url": "git+https://github.com/thomsonreuters/electron.git", 
         "type": "git"
@@ -14,8 +18,5 @@
     }, 
     "scripts": {
         "postinstall": "node install.js"
-    }, 
-    "main": "index.js", 
-    "homepage": "https://github.com/thomsonreuters/electron", 
-    "name": "tr-electron"
+    }
 }
