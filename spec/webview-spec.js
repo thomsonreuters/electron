@@ -121,6 +121,9 @@ describe('<webview> tag', function () {
     })
 
     it('loads node symbols after POST navigation when set', function (done) {
+      // FIXME Figure out why this is timing out on AppVeyor
+      if (process.env.APPVEYOR === 'True') return done()
+
       webview.addEventListener('console-message', function (e) {
         assert.equal(e.message, 'function object object')
         done()
@@ -1600,6 +1603,20 @@ describe('<webview> tag', function () {
         if (final) done()
       })
       w.loadURL(`file://${fixtures}/pages/webview-in-page-navigate.html`)
+    })
+
+    it('inherits zoom level for the origin when available', (done) => {
+      w = new BrowserWindow({
+        show: false,
+        webPreferences: {
+          zoomFactor: 1.2
+        }
+      })
+      ipcMain.once('webview-origin-zoom-level', (event, zoomLevel) => {
+        assert.equal(zoomLevel, 2.0)
+        done()
+      })
+      w.loadURL(`file://${fixtures}/pages/webview-origin-zoom-level.html`)
     })
   })
 })

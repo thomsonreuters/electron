@@ -8,11 +8,13 @@
 #include "atom/browser/atom_access_token_store.h"
 #include "atom/browser/atom_browser_client.h"
 #include "atom/browser/atom_browser_context.h"
+#include "atom/browser/atom_web_ui_controller_factory.h"
 #include "atom/browser/bridge_task_runner.h"
 #include "atom/browser/browser.h"
 #include "atom/browser/javascript_environment.h"
 #include "atom/browser/node_debugger.h"
 #include "atom/common/api/atom_bindings.h"
+#include "atom/common/asar/asar_util.h"
 #include "atom/common/node_bindings.h"
 #include "atom/common/node_includes.h"
 #include "base/command_line.h"
@@ -59,8 +61,8 @@ AtomBrowserMainParts::AtomBrowserMainParts()
     : fake_browser_process_(new BrowserProcess),
       exit_code_(nullptr),
       browser_(new Browser),
-      node_bindings_(NodeBindings::Create(true)),
-      atom_bindings_(new AtomBindings),
+      node_bindings_(NodeBindings::Create(NodeBindings::BROWSER)),
+      atom_bindings_(new AtomBindings(uv_default_loop())),
       gc_timer_(true, true) {
   DCHECK(!self_) << "Cannot have two AtomBrowserMainParts";
   self_ = this;
@@ -70,6 +72,7 @@ AtomBrowserMainParts::AtomBrowserMainParts()
 }
 
 AtomBrowserMainParts::~AtomBrowserMainParts() {
+  asar::ClearArchives();
   // Leak the JavascriptEnvironment on exit.
   // This is to work around the bug that V8 would be waiting for background
   // tasks to finish on exit, while somehow it waits forever in Electron, more
@@ -165,6 +168,9 @@ void AtomBrowserMainParts::PreMainMessageLoopRun() {
       FROM_HERE, base::TimeDelta::FromMinutes(1),
       base::Bind(&v8::Isolate::LowMemoryNotification,
                  base::Unretained(js_env_->isolate())));
+
+  content::WebUIControllerFactory::RegisterFactory(
+      AtomWebUIControllerFactory::GetInstance());
 
   brightray::BrowserMainParts::PreMainMessageLoopRun();
   bridge_task_runner_->MessageLoopIsReady();

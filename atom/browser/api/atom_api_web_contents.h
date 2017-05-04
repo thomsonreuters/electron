@@ -53,10 +53,11 @@ class WebContents : public mate::TrackableObject<WebContents>,
  public:
   enum Type {
     BACKGROUND_PAGE,  // A DevTools extension background page.
-    BROWSER_WINDOW,  // Used by BrowserWindow.
-    REMOTE,  // Thin wrap around an existing WebContents.
-    WEB_VIEW,  // Used by <webview>.
-    OFF_SCREEN,  // Used for offscreen rendering
+    BROWSER_WINDOW,   // Used by BrowserWindow.
+    BROWSER_VIEW,     // Used by BrowserView.
+    REMOTE,           // Thin wrap around an existing WebContents.
+    WEB_VIEW,         // Used by <webview>.
+    OFF_SCREEN,       // Used for offscreen rendering
   };
 
   // For node.js callback function type: function(error, buffer)
@@ -76,6 +77,9 @@ class WebContents : public mate::TrackableObject<WebContents>,
   static void BuildPrototype(v8::Isolate* isolate,
                              v8::Local<v8::FunctionTemplate> prototype);
 
+  // Notifies to destroy any guest web contents before destroying self.
+  void DestroyWebContents(bool async);
+
   int64_t GetID() const;
   int GetProcessID() const;
   Type GetType() const;
@@ -92,6 +96,8 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void GoBack();
   void GoForward();
   void GoToOffset(int offset);
+  const std::string GetWebRTCIPHandlingPolicy() const;
+  void SetWebRTCIPHandlingPolicy(const std::string& webrtc_ip_handling_policy);
   bool IsCrashed() const;
   void SetUserAgent(const std::string& user_agent, mate::Arguments* args);
   std::string GetUserAgent();
