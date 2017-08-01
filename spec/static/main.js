@@ -89,6 +89,8 @@ if (global.isCi) {
   })
 }
 
+global.nativeModulesEnabled = process.platform !== 'win32' || process.execPath.toLowerCase().indexOf('\\out\\d\\') === -1
+
 // Register app as standard scheme.
 global.standardScheme = 'app'
 global.zoomScheme = 'zoom'
@@ -138,6 +140,10 @@ app.on('ready', function () {
       detail: 'The window is not responding. Would you like to force close it or just keep waiting?'
     })
     if (chosen === 0) window.destroy()
+  })
+  window.webContents.on('crashed', function () {
+    console.error('Renderer process crashed')
+    process.exit(1)
   })
 
   // For session's download test, listen 'will-download' event in browser, and
@@ -262,14 +268,32 @@ ipcMain.on('prevent-next-new-window', (event, id) => {
   webContents.fromId(id).once('new-window', event => event.preventDefault())
 })
 
+ipcMain.on('set-web-preferences-on-next-new-window', (event, id, key, value) => {
+  webContents.fromId(id).once('new-window', (event, url, frameName, disposition, options) => {
+    options.webPreferences[key] = value
+  })
+})
+
 ipcMain.on('prevent-next-will-attach-webview', (event) => {
   event.sender.once('will-attach-webview', event => event.preventDefault())
+})
+
+ipcMain.on('prevent-next-will-prevent-unload', (event, id) => {
+  webContents.fromId(id).once('will-prevent-unload', event => event.preventDefault())
 })
 
 ipcMain.on('disable-node-on-next-will-attach-webview', (event, id) => {
   event.sender.once('will-attach-webview', (event, webPreferences, params) => {
     params.src = `file://${path.join(__dirname, '..', 'fixtures', 'pages', 'c.html')}`
     webPreferences.nodeIntegration = false
+  })
+})
+
+ipcMain.on('disable-preload-on-next-will-attach-webview', (event, id) => {
+  event.sender.once('will-attach-webview', (event, webPreferences, params) => {
+    params.src = `file://${path.join(__dirname, '..', 'fixtures', 'pages', 'webview-stripped-preload.html')}`
+    delete webPreferences.preload
+    delete webPreferences.preloadURL
   })
 })
 
@@ -312,24 +336,6 @@ ipcMain.on('handle-unhandled-rejection', (event, message) => {
   })
   fs.readFile(__filename, () => {
     Promise.reject(new Error(message))
-  })
-})
-
-ipcMain.on('navigate-with-pending-entry', (event, id) => {
-  const w = BrowserWindow.fromId(id)
-
-  w.webContents.on('did-start-loading', () => {
-    w.loadURL('about:blank')
-  })
-
-  w.webContents.on('did-navigate', (e, url) => {
-    if (url === 'about:blank') {
-      event.sender.send('navigated-with-pending-entry')
-    }
-  })
-
-  w.webContents.session.clearHostResolverCache(() => {
-    w.loadURL('http://host')
   })
 })
 

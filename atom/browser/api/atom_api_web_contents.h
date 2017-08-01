@@ -12,12 +12,12 @@
 #include "atom/browser/api/save_page_handler.h"
 #include "atom/browser/api/trackable_object.h"
 #include "atom/browser/common_web_contents_delegate.h"
+#include "atom/browser/ui/autofill_popup.h"
 #include "content/common/cursors/webcursor.h"
-#include "content/public/browser/notification_observer.h"
-#include "content/public/browser/notification_registrar.h"
 #include "content/public/browser/web_contents_observer.h"
 #include "content/public/common/favicon_url.h"
 #include "native_mate/handle.h"
+#include "printing/backend/print_backend.h"
 #include "ui/gfx/image/image.h"
 
 namespace blink {
@@ -41,6 +41,7 @@ namespace atom {
 
 struct SetSizeParams;
 class AtomBrowserContext;
+class AtomJavaScriptDialogManager;
 class WebContentsZoomController;
 class WebViewGuestDelegate;
 
@@ -48,8 +49,7 @@ namespace api {
 
 class WebContents : public mate::TrackableObject<WebContents>,
                     public CommonWebContentsDelegate,
-                    public content::WebContentsObserver,
-                    public content::NotificationObserver {
+                    public content::WebContentsObserver {
  public:
   enum Type {
     BACKGROUND_PAGE,  // A DevTools extension background page.
@@ -82,6 +82,7 @@ class WebContents : public mate::TrackableObject<WebContents>,
 
   int64_t GetID() const;
   int GetProcessID() const;
+  base::ProcessId GetOSProcessID() const;
   Type GetType() const;
   bool Equal(const WebContents* web_contents) const;
   void LoadURL(const GURL& url, const mate::Dictionary& options);
@@ -116,9 +117,11 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void InspectServiceWorker();
   void HasServiceWorker(const base::Callback<void(bool)>&);
   void UnregisterServiceWorker(const base::Callback<void(bool)>&);
+  void SetIgnoreMenuShortcuts(bool ignore);
   void SetAudioMuted(bool muted);
   bool IsAudioMuted();
   void Print(mate::Arguments* args);
+  std::vector<printing::PrinterBasicInfo> GetPrinterList();
   void SetEmbedder(const WebContents* embedder);
 
   // Print current page as PDF.
@@ -176,6 +179,7 @@ class WebContents : public mate::TrackableObject<WebContents>,
 
   // Methods for offscreen rendering
   bool IsOffScreen() const;
+  bool IsOffScreenOrEmbedderOffscreen() const;
   void OnPaint(const gfx::Rect& dirty_rect, const SkBitmap& bitmap);
   void StartPainting();
   void StopPainting();
@@ -183,6 +187,7 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void SetFrameRate(int frame_rate);
   int GetFrameRate() const;
   void Invalidate();
+  gfx::Size GetSizeForNewRenderView(content::WebContents*) const override;
 
   // Methods for zoom handling.
   void SetZoomLevel(double level);
@@ -296,6 +301,8 @@ class WebContents : public mate::TrackableObject<WebContents>,
   std::unique_ptr<content::BluetoothChooser> RunBluetoothChooser(
       content::RenderFrameHost* frame,
       const content::BluetoothChooser::EventHandler& handler) override;
+  content::JavaScriptDialogManager* GetJavaScriptDialogManager(
+      content::WebContents* source) override;
 
   // content::WebContentsObserver:
   void BeforeUnloadFired(const base::TimeTicks& proceed_time) override;
@@ -317,11 +324,11 @@ class WebContents : public mate::TrackableObject<WebContents>,
       const content::ResourceRequestDetails& details) override;
   void DidGetRedirectForResourceRequest(
       const content::ResourceRedirectDetails& details) override;
-  void DidStartNavigation(
-      content::NavigationHandle* navigation_handle) override;
   void DidFinishNavigation(
       content::NavigationHandle* navigation_handle) override;
   bool OnMessageReceived(const IPC::Message& message) override;
+  bool OnMessageReceived(const IPC::Message& message,
+                         content::RenderFrameHost* frame_host) override;
   void WebContentsDestroyed() override;
   void NavigationEntryCommitted(
       const content::LoadCommittedDetails& load_details) override;
@@ -336,12 +343,6 @@ class WebContents : public mate::TrackableObject<WebContents>,
                            const MediaPlayerId& id) override;
   void DidChangeThemeColor(SkColor theme_color) override;
 
-  // content::NotificationObserver:
-  void Observe(int type,
-               const content::NotificationSource& source,
-               const content::NotificationDetails& details) override;
-  void BeforeUnloadDialogCancelled() override;
-
   // brightray::InspectableWebContentsDelegate:
   void DevToolsReloadPage() override;
 
@@ -351,13 +352,6 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void DevToolsClosed() override;
 
  private:
-  struct LoadURLParams {
-    LoadURLParams() : params(GURL()), id(0) {}
-
-    content::NavigationController::LoadURLParams params;
-    int id;
-  };
-
   AtomBrowserContext* GetBrowserContext() const;
 
   uint32_t GetNextRequestId() {
@@ -388,6 +382,7 @@ class WebContents : public mate::TrackableObject<WebContents>,
   v8::Global<v8::Value> devtools_web_contents_;
   v8::Global<v8::Value> debugger_;
 
+  std::unique_ptr<AtomJavaScriptDialogManager> dialog_manager_;
   std::unique_ptr<WebViewGuestDelegate> guest_delegate_;
 
   // The host webcontents that may contain this webcontents.
@@ -407,11 +402,6 @@ class WebContents : public mate::TrackableObject<WebContents>,
 
   // Whether to enable devtools.
   bool enable_devtools_;
-
-  // Container to hold url parms for deferred load when
-  // there is a pending navigation entry.
-  LoadURLParams deferred_load_url_;
-  content::NotificationRegistrar registrar_;
 
   DISALLOW_COPY_AND_ASSIGN(WebContents);
 };

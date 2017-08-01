@@ -109,6 +109,10 @@ class AtomBrowserClient : public brightray::BrowserClient,
 
   // content::RenderProcessHostObserver:
   void RenderProcessHostDestroyed(content::RenderProcessHost* host) override;
+  void RenderProcessReady(content::RenderProcessHost* host) override;
+  void RenderProcessExited(content::RenderProcessHost* host,
+                           base::TerminationStatus status,
+                           int exit_code) override;
 
  private:
   bool ShouldCreateNewSiteInstance(content::RenderFrameHost* render_frame_host,
@@ -118,16 +122,19 @@ class AtomBrowserClient : public brightray::BrowserClient,
   struct ProcessPreferences {
     bool sandbox;
     bool native_window_open;
+    bool disable_popups;
   };
   void AddProcessPreferences(int process_id, ProcessPreferences prefs);
   void RemoveProcessPreferences(int process_id);
   bool IsRendererSandboxed(int process_id);
   bool RendererUsesNativeWindowOpen(int process_id);
+  bool RendererDisablesPopups(int process_id);
 
-  // pending_render_process => current_render_process.
-  std::map<int, int> pending_processes_;
+  // pending_render_process => web contents.
+  std::map<int, content::WebContents*> pending_processes_;
 
   std::map<int, ProcessPreferences> process_preferences_;
+  std::map<int, base::ProcessId> render_process_host_pids_;
   base::Lock process_preferences_lock_;
 
   std::unique_ptr<AtomResourceDispatcherHostDelegate>

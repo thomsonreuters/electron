@@ -101,11 +101,21 @@ void WebContentsPreferences::AppendExtraCommandLineSwitches(
   if (web_preferences.GetBoolean(options::kNodeIntegrationInWorker, &b) && b)
     command_line->AppendSwitch(switches::kNodeIntegrationInWorker);
 
+  // Check if webview tag creation is enabled, default to nodeIntegration value.
+  // TODO(kevinsawicki): Default to false in 2.0
+  bool webview_tag = node_integration;
+  web_preferences.GetBoolean(options::kWebviewTag, &webview_tag);
+  command_line->AppendSwitchASCII(switches::kWebviewTag,
+                                  webview_tag ? "true" : "false");
+
   // If the `sandbox` option was passed to the BrowserWindow's webPreferences,
   // pass `--enable-sandbox` to the renderer so it won't have any node.js
   // integration.
-  if (IsSandboxed(web_contents))
+  if (IsSandboxed(web_contents)) {
     command_line->AppendSwitch(switches::kEnableSandbox);
+  } else if (!command_line->HasSwitch(switches::kEnableSandbox)) {
+    command_line->AppendSwitch(::switches::kNoSandbox);
+  }
   if (web_preferences.GetBoolean("nativeWindowOpen", &b) && b)
     command_line->AppendSwitch(switches::kNativeWindowOpen);
 
@@ -179,42 +189,27 @@ void WebContentsPreferences::AppendExtraCommandLineSwitches(
     command_line->AppendSwitchASCII(::switches::kDisableBlinkFeatures,
                                     disable_blink_features);
 
-  // The initial visibility state.
-  NativeWindow* window = NativeWindow::FromWebContents(web_contents);
-
-  // Use embedder window for webviews
-  if (guest_instance_id && !window) {
+  if (guest_instance_id) {
+    // Webview `document.visibilityState` tracks window visibility so we need
+    // to let it know if the window happens to be hidden right now.
     auto manager = WebViewManager::GetWebViewManager(web_contents);
     if (manager) {
       auto embedder = manager->GetEmbedder(guest_instance_id);
-      if (embedder)
-        window = NativeWindow::FromWebContents(embedder);
+      if (embedder) {
+        auto window = NativeWindow::FromWebContents(embedder);
+        if (window) {
+          const bool visible = window->IsVisible() && !window->IsMinimized();
+          if (!visible) {
+            command_line->AppendSwitch(switches::kHiddenPage);
+          }
+        }
+      }
     }
   }
-
-  if (window) {
-    bool visible = window->IsVisible() && !window->IsMinimized();
-    if (!visible)  // Default state is visible.
-      command_line->AppendSwitch(switches::kHiddenPage);
-  }
 }
 
-bool WebContentsPreferences::IsSandboxed(content::WebContents* web_contents) {
-  WebContentsPreferences* self;
-  if (!web_contents)
-    return false;
-
-  self = FromWebContents(web_contents);
-  if (!self)
-    return false;
-
-  base::DictionaryValue& web_preferences = self->web_preferences_;
-  bool sandboxed = false;
-  web_preferences.GetBoolean("sandbox", &sandboxed);
-  return sandboxed;
-}
-
-bool WebContentsPreferences::UsesNativeWindowOpen(
+bool WebContentsPreferences::IsPreferenceEnabled(
+    const std::string& attribute_name,
     content::WebContents* web_contents) {
   WebContentsPreferences* self;
   if (!web_contents)
@@ -225,9 +220,28 @@ bool WebContentsPreferences::UsesNativeWindowOpen(
     return false;
 
   base::DictionaryValue& web_preferences = self->web_preferences_;
-  bool use = false;
-  web_preferences.GetBoolean("nativeWindowOpen", &use);
-  return use;
+  bool bool_value = false;
+  web_preferences.GetBoolean(attribute_name, &bool_value);
+  return bool_value;
+}
+
+bool WebContentsPreferences::IsSandboxed(content::WebContents* web_contents) {
+  return IsPreferenceEnabled("sandbox", web_contents);
+}
+
+bool WebContentsPreferences::UsesNativeWindowOpen(
+    content::WebContents* web_contents) {
+  return IsPreferenceEnabled("nativeWindowOpen", web_contents);
+}
+
+bool WebContentsPreferences::IsPluginsEnabled(
+    content::WebContents* web_contents) {
+  return IsPreferenceEnabled("plugins", web_contents);
+}
+
+bool WebContentsPreferences::DisablePopups(
+    content::WebContents* web_contents) {
+  return IsPreferenceEnabled("disablePopups", web_contents);
 }
 
 // static

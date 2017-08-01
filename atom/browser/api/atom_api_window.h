@@ -91,6 +91,7 @@ class Window : public mate::TrackableObject<Window>,
   void OnExecuteWindowsCommand(const std::string& command_name) override;
   void OnTouchBarItemResult(const std::string& item_id,
                             const base::DictionaryValue& details) override;
+  void OnNewWindowForTab() override;
 
   #if defined(OS_WIN)
   void OnWindowMessage(UINT message, WPARAM w_param, LPARAM l_param) override;
@@ -185,6 +186,7 @@ class Window : public mate::TrackableObject<Window>,
   std::vector<v8::Local<v8::Object>> GetChildWindows() const;
   v8::Local<v8::Value> GetBrowserView() const;
   void SetBrowserView(v8::Local<v8::Value> value);
+  void ResetBrowserView();
   bool IsModal() const;
   v8::Local<v8::Value> GetNativeWindowHandle();
 

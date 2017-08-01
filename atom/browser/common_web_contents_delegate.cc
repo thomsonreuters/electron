@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "atom/browser/atom_browser_context.h"
-#include "atom/browser/atom_javascript_dialog_manager.h"
 #include "atom/browser/native_window.h"
 #include "atom/browser/ui/file_dialog.h"
 #include "atom/browser/web_dialog_helper.h"
@@ -150,7 +149,8 @@ bool IsDevToolsFileSystemAdded(
 }  // namespace
 
 CommonWebContentsDelegate::CommonWebContentsDelegate()
-    : html_fullscreen_(false),
+    : ignore_menu_shortcuts_(false),
+      html_fullscreen_(false),
       native_fullscreen_(false),
       devtools_file_system_indexer_(new DevToolsFileSystemIndexer) {
 }
@@ -228,15 +228,6 @@ content::WebContents* CommonWebContentsDelegate::OpenURLFromTab(
 
 bool CommonWebContentsDelegate::CanOverscrollContent() const {
   return false;
-}
-
-content::JavaScriptDialogManager*
-CommonWebContentsDelegate::GetJavaScriptDialogManager(
-    content::WebContents* source) {
-  if (!dialog_manager_)
-    dialog_manager_.reset(new AtomJavaScriptDialogManager);
-
-  return dialog_manager_.get();
 }
 
 content::ColorChooser* CommonWebContentsDelegate::OpenColorChooser(

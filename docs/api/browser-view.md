@@ -28,8 +28,8 @@ let view = new BrowserView({
     nodeIntegration: false
   }
 })
-win.addChildView(view)
-view.setBounds(0, 0, 300, 300)
+win.setBrowserView(view)
+view.setBounds({ x: 0, y: 0, width: 300, height: 300 })
 view.webContents.loadURL('https://electron.atom.io')
 ```
 
@@ -37,6 +37,14 @@ view.webContents.loadURL('https://electron.atom.io')
 
 * `options` Object (optional)
   * `webPreferences` Object (optional) - See [BrowserWindow](browser-window.md).
+
+### Static Methods
+
+#### `BrowserView.fromId(id)`
+
+* `id` Integer
+
+Returns `BrowserView` - The view with the given `id`.
 
 ### Instance Properties
 
@@ -46,15 +54,15 @@ Objects created with `new BrowserView` have the following properties:
 
 A [`WebContents`](web-contents.md) object owned by this view.
 
-#### `win.id` _Experimental_
+#### `view.id` _Experimental_
 
 A `Integer` representing the unique ID of the view.
 
 ### Instance Methods
 
-Objects created with `new BrowserWindow` have the following instance methods:
+Objects created with `new BrowserView` have the following instance methods:
 
-#### `win.setAutoResize(options)` _Experimental_
+#### `view.setAutoResize(options)` _Experimental_
 
 * `options` Object
   * `width` Boolean - If `true`, the view's width will grow and shrink together
@@ -62,13 +70,13 @@ Objects created with `new BrowserWindow` have the following instance methods:
   * `height` Boolean - If `true`, the view's height will grow and shrink
     together with the window. `false` by default.
 
-#### `win.setBounds(bounds)` _Experimental_
+#### `view.setBounds(bounds)` _Experimental_
 
 * `bounds` [Rectangle](structures/rectangle.md)
 
 Resizes and moves the view to the supplied bounds relative to the window.
 
-#### `win.setBackgroundColor(color)` _Experimental_
+#### `view.setBackgroundColor(color)` _Experimental_
 
 * `color` String - Color in `#aarrggbb` or `#argb` form. The alpha channel is
   optional.

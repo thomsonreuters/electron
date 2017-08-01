@@ -143,7 +143,7 @@ Emitted when there is redirection and the mode is `manual`. Calling
 
 #### `request.chunkedEncoding`
 
-A Boolean specifying whether the request will use HTTP chunked transfer encoding
+A `Boolean` specifying whether the request will use HTTP chunked transfer encoding
 or not. Defaults to false. The property is readable and writable, however it can
 be set only before the first write operation as the HTTP headers are not yet put
 on the wire. Trying to set the `chunkedEncoding` property after the first write
@@ -169,7 +169,7 @@ the first write will throw an error. If the passed value is not a `String`, its
 
 * `name` String - Specify an extra header name.
 
-Returns Object - The value of a previously set extra header name.
+Returns `Object` - The value of a previously set extra header name.
 
 #### `request.removeHeader(name)`
 
@@ -184,7 +184,7 @@ before first write. Trying to call it after the first write will throw an error.
 string, it is converted into a Buffer using the specified encoding.
 * `encoding` String (optional) - Used to convert string chunks into Buffer
 objects. Defaults to 'utf-8'.
-* `callback` Function (optional) - Called after the write operation ends.  
+* `callback` Function (optional) - Called after the write operation ends.
 
 `callback` is essentially a dummy function introduced in the purpose of keeping
 similarity with the Node.js API. It is called asynchronously in the next tick

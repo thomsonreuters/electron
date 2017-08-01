@@ -5,7 +5,7 @@
 [![devDependency Status](https://david-dm.org/electron/electron/dev-status.svg)](https://david-dm.org/electron/electron?type=dev)
 [![Join the Electron Community on Slack](http://atom-slack.herokuapp.com/badge.svg)](http://atom-slack.herokuapp.com/)
 
-:memo: Available Translations: [Korean](https://github.com/electron/electron/tree/master/docs-translations/ko-KR/project/README.md) | [Simplified Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-CN/project/README.md) | [Brazilian Portuguese](https://github.com/electron/electron/tree/master/docs-translations/pt-BR/project/README.md) | [Traditional Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-TW/project/README.md) | [Spanish](https://github.com/electron/electron/tree/master/docs-translations/es/project/README.md) | [Turkish](https://github.com/electron/electron/tree/master/docs-translations/tr-TR/project/README.md)
+:memo: Available Translations: [Korean](https://github.com/electron/electron/tree/master/docs-translations/ko-KR/project/README.md) | [Simplified Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-CN/project/README.md) | [Brazilian Portuguese](https://github.com/electron/electron/tree/master/docs-translations/pt-BR/project/README.md) | [Traditional Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-TW/project/README.md) | [Spanish](https://github.com/electron/electron/tree/master/docs-translations/es/project/README.md) | [Turkish](https://github.com/electron/electron/tree/master/docs-translations/tr-TR/project/README.md) | [German](https://github.com/electron/electron/tree/master/docs-translations/de-DE/project/README.md)
 
 The Electron framework lets you write cross-platform desktop applications
 using JavaScript, HTML and CSS. It is based on [Node.js](https://nodejs.org/) and
@@ -54,10 +54,11 @@ contains documents describing how to build and contribute to Electron.
 - [Simplified Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-CN)
 - [Traditional Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-TW)
 - [Turkish](https://github.com/electron/electron/tree/master/docs-translations/tr-TR)
-- [Thai](https://github.com/electron/electron/tree/master/docs-Translations/th-TH)
+- [Thai](https://github.com/electron/electron/tree/master/docs-translations/th-TH)
 - [Ukrainian](https://github.com/electron/electron/tree/master/docs-translations/uk-UA)
 - [Russian](https://github.com/electron/electron/tree/master/docs-translations/ru-RU)
 - [French](https://github.com/electron/electron/tree/master/docs-translations/fr-FR)
+- [Indonesian](https://github.com/electron/electron/tree/master/docs-translations/id)
 
 ## Quick Start
 

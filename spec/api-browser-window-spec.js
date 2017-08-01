@@ -12,6 +12,7 @@ const {ipcRenderer, remote, screen} = require('electron')
 const {app, ipcMain, BrowserWindow, protocol, webContents} = remote
 
 const isCI = remote.getGlobal('isCi')
+const nativeModulesEnabled = remote.getGlobal('nativeModulesEnabled')
 
 describe('BrowserWindow module', function () {
   var fixtures = path.resolve(__dirname, 'fixtures')
@@ -295,11 +296,6 @@ describe('BrowserWindow module', function () {
       })
       const data = new Buffer(2 * 1024 * 1024).toString('base64')
       w.loadURL(`data:image/png;base64,${data}`)
-    })
-
-    it('should not crash when there is a pending navigation entry', function (done) {
-      ipcRenderer.once('navigated-with-pending-entry', () => done())
-      ipcRenderer.send('navigate-with-pending-entry', w.id)
     })
 
     describe('POST navigations', function () {
@@ -619,6 +615,22 @@ describe('BrowserWindow module', function () {
     })
   })
 
+  describe('BrowserWindow.alwaysOnTop() resets level on minimize', function () {
+    if (process.platform !== 'darwin') {
+      return
+    }
+
+    it('resets the windows level on minimize', function () {
+      assert.equal(w.isAlwaysOnTop(), false)
+      w.setAlwaysOnTop(true, 'screen-saver')
+      assert.equal(w.isAlwaysOnTop(), true)
+      w.minimize()
+      assert.equal(w.isAlwaysOnTop(), false)
+      w.restore()
+      assert.equal(w.isAlwaysOnTop(), true)
+    })
+  })
+
   describe('BrowserWindow.setAutoHideCursor(autoHide)', () => {
     if (process.platform !== 'darwin') {
       it('is not available on non-macOS platforms', () => {
@@ -854,7 +866,7 @@ describe('BrowserWindow module', function () {
     })
   })
 
-  describe('"web-preferences" option', function () {
+  describe('"webPreferences" option', function () {
     afterEach(function () {
       ipcMain.removeAllListeners('answer')
     })
@@ -993,6 +1005,7 @@ describe('BrowserWindow module', function () {
             preload: preload
           }
         })
+        ipcRenderer.send('set-web-preferences-on-next-new-window', w.webContents.id, 'preload', preload)
         let htmlPath = path.join(fixtures, 'api', 'sandbox.html?window-open')
         const pageUrl = 'file://' + htmlPath
         w.loadURL(pageUrl)
@@ -1023,6 +1036,7 @@ describe('BrowserWindow module', function () {
             preload: preload
           }
         })
+        ipcRenderer.send('set-web-preferences-on-next-new-window', w.webContents.id, 'preload', preload)
         let htmlPath = path.join(fixtures, 'api', 'sandbox.html?window-open-external')
         const pageUrl = 'file://' + htmlPath
         let popupWindow
@@ -1052,6 +1066,43 @@ describe('BrowserWindow module', function () {
         app.once('browser-window-created', function (event, window) {
           popupWindow = window
         })
+      })
+
+      it('should inherit the sandbox setting in opened windows', function (done) {
+        w.destroy()
+        w = new BrowserWindow({
+          show: false,
+          webPreferences: {
+            sandbox: true
+          }
+        })
+
+        const preloadPath = path.join(fixtures, 'api', 'new-window-preload.js')
+        ipcRenderer.send('set-web-preferences-on-next-new-window', w.webContents.id, 'preload', preloadPath)
+        ipcMain.once('answer', (event, args) => {
+          assert.equal(args.includes('--enable-sandbox'), true)
+          done()
+        })
+        w.loadURL(`file://${path.join(fixtures, 'api', 'new-window.html')}`)
+      })
+
+      it('should open windows with the options configured via new-window event listeners', function (done) {
+        w.destroy()
+        w = new BrowserWindow({
+          show: false,
+          webPreferences: {
+            sandbox: true
+          }
+        })
+
+        const preloadPath = path.join(fixtures, 'api', 'new-window-preload.js')
+        ipcRenderer.send('set-web-preferences-on-next-new-window', w.webContents.id, 'preload', preloadPath)
+        ipcRenderer.send('set-web-preferences-on-next-new-window', w.webContents.id, 'foo', 'bar')
+        ipcMain.once('answer', (event, args, webPreferences) => {
+          assert.equal(webPreferences.foo, 'bar')
+          done()
+        })
+        w.loadURL(`file://${path.join(fixtures, 'api', 'new-window.html')}`)
       })
 
       it('should set ipc event sender correctly', function (done) {
@@ -1114,6 +1165,23 @@ describe('BrowserWindow module', function () {
         })
       })
 
+      it('can get printer list', function (done) {
+        w.destroy()
+        w = new BrowserWindow({
+          show: false,
+          webPreferences: {
+            sandbox: true,
+            preload: preload
+          }
+        })
+        w.loadURL('data:text/html,%3Ch1%3EHello%2C%20World!%3C%2Fh1%3E')
+        w.webContents.once('did-finish-load', function () {
+          const printers = w.webContents.getPrinters()
+          assert.equal(Array.isArray(printers), true)
+          done()
+        })
+      })
+
       it('can print to PDF', function (done) {
         w.destroy()
         w = new BrowserWindow({
@@ -1161,7 +1229,6 @@ describe('BrowserWindow module', function () {
           }
         })
         w.loadURL('file://' + path.join(fixtures, 'api', 'sandbox.html?allocate-memory'))
-        w.webContents.openDevTools({mode: 'detach'})
         ipcMain.once('answer', function (event, {bytesBeforeOpen, bytesAfterOpen, bytesAfterClose}) {
           const memoryIncreaseByOpen = bytesAfterOpen - bytesBeforeOpen
           const memoryDecreaseByClose = bytesAfterOpen - bytesAfterClose
@@ -1170,6 +1237,73 @@ describe('BrowserWindow module', function () {
           // fixture, we can reasonably expect decrease to be at least 70% of
           // increase
           assert(memoryDecreaseByClose > memoryIncreaseByOpen * 0.7)
+          done()
+        })
+      })
+
+      // see #9387
+      it('properly manages remote object references after page reload', (done) => {
+        w.destroy()
+        w = new BrowserWindow({
+          show: false,
+          webPreferences: {
+            preload: preload,
+            sandbox: true
+          }
+        })
+        w.loadURL('file://' + path.join(fixtures, 'api', 'sandbox.html?reload-remote'))
+
+        ipcMain.on('get-remote-module-path', (event) => {
+          event.returnValue = path.join(fixtures, 'module', 'hello.js')
+        })
+
+        let reload = false
+        ipcMain.on('reloaded', (event) => {
+          event.returnValue = reload
+          reload = !reload
+        })
+
+        ipcMain.once('reload', (event) => {
+          event.sender.reload()
+        })
+
+        ipcMain.once('answer', (event, arg) => {
+          ipcMain.removeAllListeners('reloaded')
+          ipcMain.removeAllListeners('get-remote-module-path')
+          assert.equal(arg, 'hi')
+          done()
+        })
+      })
+
+      it('properly manages remote object references after page reload in child window', (done) => {
+        w.destroy()
+        w = new BrowserWindow({
+          show: false,
+          webPreferences: {
+            preload: preload,
+            sandbox: true
+          }
+        })
+        w.loadURL('file://' + path.join(fixtures, 'api', 'sandbox.html?reload-remote-child'))
+
+        ipcMain.on('get-remote-module-path', (event) => {
+          event.returnValue = path.join(fixtures, 'module', 'hello-child.js')
+        })
+
+        let reload = false
+        ipcMain.on('reloaded', (event) => {
+          event.returnValue = reload
+          reload = !reload
+        })
+
+        ipcMain.once('reload', (event) => {
+          event.sender.reload()
+        })
+
+        ipcMain.once('answer', (event, arg) => {
+          ipcMain.removeAllListeners('reloaded')
+          ipcMain.removeAllListeners('get-remote-module-path')
+          assert.equal(arg, 'hi child window')
           done()
         })
       })
@@ -1202,19 +1336,97 @@ describe('BrowserWindow module', function () {
         w.loadURL('file://' + path.join(fixtures, 'api', 'native-window-open-file.html'))
       })
 
-      if (process.platform !== 'win32' || process.execPath.toLowerCase().indexOf('\\out\\d\\') === -1) {
-        it('loads native addons correctly after reload', (done) => {
+      it('blocks accessing cross-origin frames', (done) => {
+        ipcMain.once('answer', (event, content) => {
+          assert.equal(content, 'Blocked a frame with origin "file://" from accessing a cross-origin frame.')
+          done()
+        })
+        w.loadURL('file://' + path.join(fixtures, 'api', 'native-window-open-cross-origin.html'))
+      })
+
+      it('opens window from <iframe> tags', (done) => {
+        ipcMain.once('answer', (event, content) => {
+          assert.equal(content, 'Hello')
+          done()
+        })
+        w.loadURL('file://' + path.join(fixtures, 'api', 'native-window-open-iframe.html'))
+      })
+
+      it('loads native addons correctly after reload', (done) => {
+        if (!nativeModulesEnabled) return done()
+
+        ipcMain.once('answer', (event, content) => {
+          assert.equal(content, 'function')
           ipcMain.once('answer', (event, content) => {
             assert.equal(content, 'function')
-            ipcMain.once('answer', (event, content) => {
-              assert.equal(content, 'function')
-              done()
-            })
-            w.reload()
+            done()
           })
-          w.loadURL('file://' + path.join(fixtures, 'api', 'native-window-open-native-addon.html'))
+          w.reload()
         })
-      }
+        w.loadURL('file://' + path.join(fixtures, 'api', 'native-window-open-native-addon.html'))
+      })
+
+      it('should inherit the nativeWindowOpen setting in opened windows', function (done) {
+        w.destroy()
+        w = new BrowserWindow({
+          show: false,
+          webPreferences: {
+            nativeWindowOpen: true
+          }
+        })
+
+        const preloadPath = path.join(fixtures, 'api', 'new-window-preload.js')
+        ipcRenderer.send('set-web-preferences-on-next-new-window', w.webContents.id, 'preload', preloadPath)
+        ipcMain.once('answer', (event, args) => {
+          assert.equal(args.includes('--native-window-open'), true)
+          done()
+        })
+        w.loadURL(`file://${path.join(fixtures, 'api', 'new-window.html')}`)
+      })
+
+      it('should open windows with the options configured via new-window event listeners', function (done) {
+        w.destroy()
+        w = new BrowserWindow({
+          show: false,
+          webPreferences: {
+            nativeWindowOpen: true
+          }
+        })
+
+        const preloadPath = path.join(fixtures, 'api', 'new-window-preload.js')
+        ipcRenderer.send('set-web-preferences-on-next-new-window', w.webContents.id, 'preload', preloadPath)
+        ipcRenderer.send('set-web-preferences-on-next-new-window', w.webContents.id, 'foo', 'bar')
+        ipcMain.once('answer', (event, args, webPreferences) => {
+          assert.equal(webPreferences.foo, 'bar')
+          done()
+        })
+        w.loadURL(`file://${path.join(fixtures, 'api', 'new-window.html')}`)
+      })
+
+      it('retains the original web preferences when window.location is changed to a new origin', async function () {
+        await serveFileFromProtocol('foo', path.join(fixtures, 'api', 'window-open-location-change.html'))
+        await serveFileFromProtocol('bar', path.join(fixtures, 'api', 'window-open-location-final.html'))
+
+        w.destroy()
+        w = new BrowserWindow({
+          show: true,
+          webPreferences: {
+            nodeIntegration: false,
+            nativeWindowOpen: true
+          }
+        })
+
+        return new Promise((resolve, reject) => {
+          ipcRenderer.send('set-web-preferences-on-next-new-window', w.webContents.id, 'preload', path.join(fixtures, 'api', 'window-open-preload.js'))
+          ipcMain.once('answer', (event, args, typeofProcess) => {
+            assert.equal(args.includes('--node-integration=false'), true)
+            assert.equal(args.includes('--native-window-open'), true)
+            assert.equal(typeofProcess, 'undefined')
+            resolve()
+          })
+          w.loadURL(`file://${path.join(fixtures, 'api', 'window-open-location-open.html')}`)
+        })
+      })
     })
   })
 
@@ -1314,6 +1526,164 @@ describe('BrowserWindow module', function () {
         w.loadURL('about:blank')
       })
       w.loadURL('file://' + path.join(fixtures, 'api', 'beforeunload-false-prevent3.html'))
+    })
+  })
+
+  describe('document.visibilityState/hidden', function () {
+    beforeEach(function () {
+      w.destroy()
+    })
+
+    function onVisibilityChange (callback) {
+      ipcMain.on('pong', function (event, visibilityState, hidden) {
+        if (event.sender.id === w.webContents.id) {
+          callback(visibilityState, hidden)
+        }
+      })
+    }
+
+    function onNextVisibilityChange (callback) {
+      ipcMain.once('pong', function (event, visibilityState, hidden) {
+        if (event.sender.id === w.webContents.id) {
+          callback(visibilityState, hidden)
+        }
+      })
+    }
+
+    afterEach(function () {
+      ipcMain.removeAllListeners('pong')
+    })
+
+    it('visibilityState is initially visible despite window being hidden', function (done) {
+      w = new BrowserWindow({ show: false, width: 100, height: 100 })
+
+      let readyToShow = false
+      w.once('ready-to-show', function () {
+        readyToShow = true
+      })
+
+      onNextVisibilityChange(function (visibilityState, hidden) {
+        assert.equal(readyToShow, false)
+        assert.equal(visibilityState, 'visible')
+        assert.equal(hidden, false)
+
+        done()
+      })
+
+      w.loadURL('file://' + path.join(fixtures, 'pages', 'visibilitychange.html'))
+    })
+
+    it('visibilityState changes when window is hidden', function (done) {
+      w = new BrowserWindow({width: 100, height: 100})
+
+      onNextVisibilityChange(function (visibilityState, hidden) {
+        assert.equal(visibilityState, 'visible')
+        assert.equal(hidden, false)
+
+        onNextVisibilityChange(function (visibilityState, hidden) {
+          assert.equal(visibilityState, 'hidden')
+          assert.equal(hidden, true)
+
+          done()
+        })
+
+        w.hide()
+      })
+
+      w.loadURL('file://' + path.join(fixtures, 'pages', 'visibilitychange.html'))
+    })
+
+    it('visibilityState changes when window is shown', function (done) {
+      w = new BrowserWindow({width: 100, height: 100})
+
+      onNextVisibilityChange(function (visibilityState, hidden) {
+        onVisibilityChange(function (visibilityState, hidden) {
+          if (!hidden) {
+            assert.equal(visibilityState, 'visible')
+            done()
+          }
+        })
+
+        w.hide()
+        w.show()
+      })
+
+      w.loadURL('file://' + path.join(fixtures, 'pages', 'visibilitychange.html'))
+    })
+
+    it('visibilityState changes when window is shown inactive', function (done) {
+      if (isCI && process.platform === 'win32') return done()
+
+      w = new BrowserWindow({width: 100, height: 100})
+
+      onNextVisibilityChange(function (visibilityState, hidden) {
+        onVisibilityChange(function (visibilityState, hidden) {
+          if (!hidden) {
+            assert.equal(visibilityState, 'visible')
+            done()
+          }
+        })
+
+        w.hide()
+        w.showInactive()
+      })
+
+      w.loadURL('file://' + path.join(fixtures, 'pages', 'visibilitychange.html'))
+    })
+
+    it('visibilityState changes when window is minimized', function (done) {
+      if (isCI && process.platform === 'linux') return done()
+
+      w = new BrowserWindow({width: 100, height: 100})
+
+      onNextVisibilityChange(function (visibilityState, hidden) {
+        assert.equal(visibilityState, 'visible')
+        assert.equal(hidden, false)
+
+        onNextVisibilityChange(function (visibilityState, hidden) {
+          assert.equal(visibilityState, 'hidden')
+          assert.equal(hidden, true)
+
+          done()
+        })
+
+        w.minimize()
+      })
+
+      w.loadURL('file://' + path.join(fixtures, 'pages', 'visibilitychange.html'))
+    })
+
+    it('visibilityState remains visible if backgroundThrottling is disabled', function (done) {
+      w = new BrowserWindow({
+        show: false,
+        width: 100,
+        height: 100,
+        webPreferences: {
+          backgroundThrottling: false
+        }
+      })
+
+      onNextVisibilityChange(function (visibilityState, hidden) {
+        assert.equal(visibilityState, 'visible')
+        assert.equal(hidden, false)
+
+        onNextVisibilityChange(function (visibilityState, hidden) {
+          done(new Error(`Unexpected visibility change event. visibilityState: ${visibilityState} hidden: ${hidden}`))
+        })
+      })
+
+      w.once('show', () => {
+        w.once('hide', () => {
+          w.once('show', () => {
+            done()
+          })
+          w.show()
+        })
+        w.hide()
+      })
+      w.show()
+
+      w.loadURL('file://' + path.join(fixtures, 'pages', 'visibilitychange.html'))
     })
   })
 
@@ -1849,6 +2219,41 @@ describe('BrowserWindow module', function () {
     })
   })
 
+  describe('BrowserWindow.setFullScreen(false)', function () {
+    // only applicable to windows: https://github.com/electron/electron/issues/6036
+    if (process.platform !== 'win32') return
+
+    it('should restore a normal visible window from a fullscreen startup state', function (done) {
+      w.webContents.once('did-finish-load', function () {
+        // start fullscreen and hidden
+        w.setFullScreen(true)
+        w.once('show', function () {
+          // restore window to normal state
+          w.setFullScreen(false)
+        })
+        w.once('leave-full-screen', function () {
+          assert.equal(w.isVisible(), true)
+          assert.equal(w.isFullScreen(), false)
+          done()
+        })
+        w.show()
+      })
+      w.loadURL('about:blank')
+    })
+
+    it('should keep window hidden if already in hidden state', function (done) {
+      w.webContents.once('did-finish-load', function () {
+        w.once('leave-full-screen', () => {
+          assert.equal(w.isVisible(), false)
+          assert.equal(w.isFullScreen(), false)
+          done()
+        })
+        w.setFullScreen(false)
+      })
+      w.loadURL('about:blank')
+    })
+  })
+
   describe('parent window', function () {
     let c = null
 
@@ -2223,9 +2628,7 @@ describe('BrowserWindow module', function () {
         typeofArrayPush: 'number',
         typeofFunctionApply: 'boolean',
         typeofPreloadExecuteJavaScriptProperty: 'number',
-        typeofOpenedWindow: 'object',
-        documentHidden: true,
-        documentVisibilityState: 'hidden'
+        typeofOpenedWindow: 'object'
       }
     }
 
@@ -2269,9 +2672,21 @@ describe('BrowserWindow module', function () {
   })
 
   describe('offscreen rendering', function () {
+    const isOffscreenRenderingDisabled = () => {
+      const contents = webContents.create({})
+      const disabled = typeof contents.isOffscreen !== 'function'
+      contents.destroy()
+      return disabled
+    }
+
+    // Offscreen rendering can be disabled in the build
+    if (isOffscreenRenderingDisabled()) return
+
     beforeEach(function () {
       if (w != null) w.destroy()
       w = new BrowserWindow({
+        width: 100,
+        height: 100,
         show: false,
         webPreferences: {
           backgroundThrottling: false,
@@ -2280,9 +2695,12 @@ describe('BrowserWindow module', function () {
       })
     })
 
-    it('creates offscreen window', function (done) {
-      w.webContents.once('paint', function (event, rect, data, size) {
+    it('creates offscreen window with correct size', function (done) {
+      w.webContents.once('paint', function (event, rect, data) {
         assert.notEqual(data.length, 0)
+        let size = data.getSize()
+        assertWithinDelta(size.width, 100, 2, 'width')
+        assertWithinDelta(size.height, 100, 2, 'height')
         done()
       })
       w.loadURL('file://' + fixtures + '/api/offscreen-rendering.html')
@@ -2303,7 +2721,7 @@ describe('BrowserWindow module', function () {
 
     describe('window.webContents.isPainting()', function () {
       it('returns whether is currently painting', function (done) {
-        w.webContents.once('paint', function (event, rect, data, size) {
+        w.webContents.once('paint', function (event, rect, data) {
           assert.equal(w.webContents.isPainting(), true)
           done()
         })
@@ -2327,7 +2745,7 @@ describe('BrowserWindow module', function () {
         w.webContents.on('dom-ready', function () {
           w.webContents.stopPainting()
           w.webContents.startPainting()
-          w.webContents.once('paint', function (event, rect, data, size) {
+          w.webContents.once('paint', function (event, rect, data) {
             assert.equal(w.webContents.isPainting(), true)
             done()
           })
@@ -2338,7 +2756,7 @@ describe('BrowserWindow module', function () {
 
     describe('window.webContents.getFrameRate()', function () {
       it('has default frame rate', function (done) {
-        w.webContents.once('paint', function (event, rect, data, size) {
+        w.webContents.once('paint', function (event, rect, data) {
           assert.equal(w.webContents.getFrameRate(), 60)
           done()
         })
@@ -2350,7 +2768,7 @@ describe('BrowserWindow module', function () {
       it('sets custom frame rate', function (done) {
         w.webContents.on('dom-ready', function () {
           w.webContents.setFrameRate(30)
-          w.webContents.once('paint', function (event, rect, data, size) {
+          w.webContents.once('paint', function (event, rect, data) {
             assert.equal(w.webContents.getFrameRate(), 30)
             done()
           })
@@ -2377,7 +2795,7 @@ const assertBoundsEqual = (actual, expect) => {
 
 const assertWithinDelta = (actual, expect, delta, label) => {
   const result = Math.abs(actual - expect)
-  assert.ok(result <= delta, `${label} value of ${expect} was not within ${delta} of ${actual}`)
+  assert.ok(result <= delta, `${label} value of ${actual} was not within ${delta} of ${expect}`)
 }
 
 // Is the display's scale factor possibly causing rounding of pixel coordinate
@@ -2388,4 +2806,21 @@ const isScaleFactorRounding = () => {
   if (Math.round(scaleFactor) !== scaleFactor) return true
   // Return true if scale factor is odd number above 2
   return scaleFactor > 2 && scaleFactor % 2 === 1
+}
+
+function serveFileFromProtocol (protocolName, filePath) {
+  return new Promise((resolve, reject) => {
+    protocol.registerBufferProtocol(protocolName, (request, callback) => {
+      callback({
+        mimeType: 'text/html',
+        data: fs.readFileSync(filePath)
+      })
+    }, (error) => {
+      if (error != null) {
+        reject(error)
+      } else {
+        resolve()
+      }
+    })
+  })
 }

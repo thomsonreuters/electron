@@ -1,5 +1,6 @@
 ## Class: Menu
 
+
 > Create native application menus and context menus.
 
 Process: [Main](../glossary.md#main-process)
@@ -64,8 +65,9 @@ The `menu` object has the following instance methods:
 * `browserWindow` BrowserWindow (optional) - Default is the focused window.
 * `options` Object (optional)
   * `x` Number (optional) - Default is the current mouse cursor position.
-  * `y` Number (**required** if `x` is used) - Default is the current mouse
-    cursor position.
+    Must be declared if `y` is declared.
+  * `y` Number (optional) - Default is the current mouse cursor position.
+    Must be declared if `x` is declared.
   * `async` Boolean (optional) - Set to `true` to have this method return
     immediately called, `false` to return after the menu has been selected
     or closed. Defaults to `false`.
@@ -100,7 +102,7 @@ Inserts the `menuItem` to the `pos` position of the menu.
 
 #### `menu.items`
 
-A MenuItem[] array containing the menu's items.
+A `MenuItem[]` array containing the menu's items.
 
 Each `Menu` consists of multiple [`MenuItem`](menu-item.md)s and each `MenuItem`
 can have a submenu.

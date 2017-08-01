@@ -29,12 +29,16 @@
 #include "base/files/file_util.h"
 #include "base/path_service.h"
 #include "base/strings/string_util.h"
+#include "base/sys_info.h"
 #include "brightray/browser/brightray_paths.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/icon_manager.h"
 #include "chrome/common/chrome_paths.h"
+#include "content/browser/gpu/compositor_util.h"
+#include "content/browser/gpu/gpu_data_manager_impl.h"
 #include "content/public/browser/browser_accessibility_state.h"
 #include "content/public/browser/browser_child_process_host.h"
+#include "content/public/browser/child_process_data.h"
 #include "content/public/browser/client_certificate_delegate.h"
 #include "content/public/browser/gpu_data_manager.h"
 #include "content/public/browser/render_frame_host.h"
@@ -505,6 +509,14 @@ App::App(v8::Isolate* isolate) {
   static_cast<AtomBrowserClient*>(AtomBrowserClient::Get())->set_delegate(this);
   Browser::Get()->AddObserver(this);
   content::GpuDataManager::GetInstance()->AddObserver(this);
+  content::BrowserChildProcessObserver::Add(this);
+  base::ProcessId pid = base::GetCurrentProcId();
+  std::unique_ptr<atom::ProcessMetric> process_metric(
+      new atom::ProcessMetric(
+          content::PROCESS_TYPE_BROWSER,
+          pid,
+          base::ProcessMetrics::CreateCurrentProcessMetrics()));
+  app_metrics_[pid] = std::move(process_metric);
   Init(isolate);
 }
 
@@ -513,6 +525,7 @@ App::~App() {
       nullptr);
   Browser::Get()->RemoveObserver(this);
   content::GpuDataManager::GetInstance()->RemoveObserver(this);
+  content::BrowserChildProcessObserver::Remove(this);
 }
 
 void App::OnBeforeQuit(bool* prevent_default) {
@@ -573,6 +586,11 @@ void App::OnContinueUserActivity(
     const base::DictionaryValue& user_info) {
   *prevent_default = Emit("continue-activity", type, user_info);
 }
+
+void App::OnNewWindowForTab() {
+  Emit("new-window-for-tab");
+}
+
 #endif
 
 void App::OnLogin(LoginHandler* login_handler,
@@ -664,6 +682,54 @@ void App::SelectClientCertificate(
 void App::OnGpuProcessCrashed(base::TerminationStatus status) {
   Emit("gpu-process-crashed",
     status == base::TERMINATION_STATUS_PROCESS_WAS_KILLED);
+}
+
+void App::BrowserChildProcessLaunchedAndConnected(
+    const content::ChildProcessData& data) {
+  ChildProcessLaunched(data.process_type, data.handle);
+}
+
+void App::BrowserChildProcessHostDisconnected(
+    const content::ChildProcessData& data) {
+  ChildProcessDisconnected(base::GetProcId(data.handle));
+}
+
+void App::BrowserChildProcessCrashed(const content::ChildProcessData& data,
+                                     int exit_code) {
+  ChildProcessDisconnected(base::GetProcId(data.handle));
+}
+
+void App::BrowserChildProcessKilled(const content::ChildProcessData& data,
+                                    int exit_code) {
+  ChildProcessDisconnected(base::GetProcId(data.handle));
+}
+
+void App::RenderProcessReady(content::RenderProcessHost* host) {
+  ChildProcessLaunched(content::PROCESS_TYPE_RENDERER, host->GetHandle());
+}
+
+void App::RenderProcessDisconnected(base::ProcessId host_pid) {
+  ChildProcessDisconnected(host_pid);
+}
+
+void App::ChildProcessLaunched(int process_type, base::ProcessHandle handle) {
+  auto pid = base::GetProcId(handle);
+
+#if defined(OS_MACOSX)
+  std::unique_ptr<base::ProcessMetrics> metrics(
+      base::ProcessMetrics::CreateProcessMetrics(
+          handle, content::BrowserChildProcessHost::GetPortProvider()));
+#else
+  std::unique_ptr<base::ProcessMetrics> metrics(
+      base::ProcessMetrics::CreateProcessMetrics(handle));
+#endif
+  std::unique_ptr<atom::ProcessMetric> process_metric(
+      new atom::ProcessMetric(process_type, pid, std::move(metrics)));
+  app_metrics_[pid] = std::move(process_metric);
+}
+
+void App::ChildProcessDisconnected(base::ProcessId pid) {
+  app_metrics_.erase(pid);
 }
 
 base::FilePath App::GetAppPath() const {
@@ -785,6 +851,17 @@ void App::DisableHardwareAcceleration(mate::Arguments* args) {
     return;
   }
   content::GpuDataManager::GetInstance()->DisableHardwareAcceleration();
+}
+
+void App::DisableDomainBlockingFor3DAPIs(mate::Arguments* args) {
+  if (Browser::Get()->is_ready()) {
+    args->ThrowError(
+        "app.disableDomainBlockingFor3DAPIs() can only be called "
+        "before app is ready");
+    return;
+  }
+  content::GpuDataManagerImpl::GetInstance()
+      ->DisableDomainBlockingFor3DAPIsForTesting();
 }
 
 bool App::IsAccessibilitySupportEnabled() {
@@ -923,45 +1000,76 @@ void App::GetFileIcon(const base::FilePath& path,
   }
 }
 
-std::vector<mate::Dictionary> App::GetAppMemoryInfo(v8::Isolate* isolate) {
-  AppIdProcessIterator process_iterator;
-  auto process_entry = process_iterator.NextProcessEntry();
+std::vector<mate::Dictionary> App::GetAppMetrics(v8::Isolate* isolate) {
   std::vector<mate::Dictionary> result;
+  int processor_count = base::SysInfo::NumberOfProcessors();
 
-  while (process_entry != nullptr) {
-    int64_t pid = process_entry->pid();
-    auto process = base::Process::OpenWithExtraPrivileges(pid);
-
-#if defined(OS_MACOSX)
-    std::unique_ptr<base::ProcessMetrics> metrics(
-      base::ProcessMetrics::CreateProcessMetrics(
-        process.Handle(), content::BrowserChildProcessHost::GetPortProvider()));
-#else
-    std::unique_ptr<base::ProcessMetrics> metrics(
-      base::ProcessMetrics::CreateProcessMetrics(process.Handle()));
-#endif
-
+  for (const auto& process_metric : app_metrics_) {
     mate::Dictionary pid_dict = mate::Dictionary::CreateEmpty(isolate);
     mate::Dictionary memory_dict = mate::Dictionary::CreateEmpty(isolate);
+    mate::Dictionary cpu_dict = mate::Dictionary::CreateEmpty(isolate);
 
     memory_dict.Set("workingSetSize",
-            static_cast<double>(metrics->GetWorkingSetSize() >> 10));
+        static_cast<double>(
+            process_metric.second->metrics->GetWorkingSetSize() >> 10));
     memory_dict.Set("peakWorkingSetSize",
-            static_cast<double>(metrics->GetPeakWorkingSetSize() >> 10));
+        static_cast<double>(
+            process_metric.second->metrics->GetPeakWorkingSetSize() >> 10));
 
     size_t private_bytes, shared_bytes;
-    if (metrics->GetMemoryBytes(&private_bytes, &shared_bytes)) {
+    if (process_metric.second->metrics->GetMemoryBytes(&private_bytes,
+                                                       &shared_bytes)) {
       memory_dict.Set("privateBytes", static_cast<double>(private_bytes >> 10));
       memory_dict.Set("sharedBytes", static_cast<double>(shared_bytes >> 10));
     }
 
     pid_dict.Set("memory", memory_dict);
-    pid_dict.Set("pid", pid);
+    cpu_dict.Set("percentCPUUsage",
+        process_metric.second->metrics->GetPlatformIndependentCPUUsage()
+        / processor_count);
+    cpu_dict.Set("idleWakeupsPerSecond",
+        process_metric.second->metrics->GetIdleWakeupsPerSecond());
+    pid_dict.Set("cpu", cpu_dict);
+    pid_dict.Set("pid", process_metric.second->pid);
+    pid_dict.Set("type",
+        content::GetProcessTypeNameInEnglish(process_metric.second->type));
     result.push_back(pid_dict);
-    process_entry = process_iterator.NextProcessEntry();
   }
 
   return result;
+}
+
+v8::Local<v8::Value> App::GetGPUFeatureStatus(v8::Isolate* isolate) {
+  auto status = content::GetFeatureStatus();
+  return mate::ConvertToV8(isolate,
+                           status ? *status : base::DictionaryValue());
+}
+
+void App::EnableMixedSandbox(mate::Arguments* args) {
+  if (Browser::Get()->is_ready()) {
+    args->ThrowError("app.enableMixedSandbox() can only be called "
+                     "before app is ready");
+    return;
+  }
+
+  auto command_line = base::CommandLine::ForCurrentProcess();
+  if (command_line->HasSwitch(::switches::kNoSandbox)) {
+#if defined(OS_WIN)
+    const base::CommandLine::CharType* noSandboxArg = L"--no-sandbox";
+#else
+    const base::CommandLine::CharType* noSandboxArg = "--no-sandbox";
+#endif
+
+    // Remove the --no-sandbox switch
+    base::CommandLine::StringVector modified_command_line;
+    for (auto& arg : command_line->argv()) {
+      if (arg.compare(noSandboxArg) != 0) {
+        modified_command_line.push_back(arg);
+      }
+    }
+    command_line->InitFromArgv(modified_command_line);
+  }
+  command_line->AppendSwitch(switches::kEnableMixedSandbox);
 }
 
 // static
@@ -1035,8 +1143,14 @@ void App::BuildPrototype(
                  &App::IsAccessibilitySupportEnabled)
       .SetMethod("disableHardwareAcceleration",
                  &App::DisableHardwareAcceleration)
+      .SetMethod("disableDomainBlockingFor3DAPIs",
+                 &App::DisableDomainBlockingFor3DAPIs)
       .SetMethod("getFileIcon", &App::GetFileIcon)
-      .SetMethod("getAppMemoryInfo", &App::GetAppMemoryInfo);
+      .SetMethod("getAppMetrics", &App::GetAppMetrics)
+      .SetMethod("getGPUFeatureStatus", &App::GetGPUFeatureStatus)
+      .SetMethod("enableMixedSandbox", &App::EnableMixedSandbox)
+      // TODO(juturu): Remove in 2.0, deprecate before then with warnings
+      .SetMethod("getAppMemoryInfo", &App::GetAppMetrics);
 }
 
 }  // namespace api

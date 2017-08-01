@@ -97,6 +97,25 @@ child.once('ready-to-show', () => {
 })
 ```
 
+### Page visibility
+
+The [Page Visibility API][page-visibility-api] works as follows:
+
+* On all platforms, the visibility state tracks whether the window is
+  hidden/minimized or not.
+* Additionally, on macOS, the visibility state also tracks the window
+  occlusion state. If the window is occluded (i.e. fully covered) by another
+  window, the visibility state will be `hidden`. On other platforms, the
+  visibility state will be `hidden` only when the window is minimized or
+  explicitly hidden with `win.hide()`.
+* If a `BrowserWindow` is created with `show: false`, the initial visibility
+  state will be `visible` despite the window actually being hidden.
+* If `backgroundThrottling` is disabled, the visibility state will remain
+  `visible` even if the window is minimized, occluded, or hidden.
+
+It is recommended that you pause expensive operations when the visibility
+state is `hidden` in order to minimize power consumption.
+
 ### Platform notices
 
 * On macOS modal windows will be displayed as sheets attached to the parent window.
@@ -191,14 +210,24 @@ It creates a new `BrowserWindow` with native properties as set by the `options`.
     Default is `false`.
   * `type` String (optional) - The type of window, default is normal window. See more about
     this below.
-  * `titleBarStyle` String (optional) - The style of window title bar. Default is `default`. Possible values are:
+  * `titleBarStyle` String (optional) - The style of window title bar.
+    Default is `default`. Possible values are:
     * `default` - Results in the standard gray opaque Mac title
       bar.
     * `hidden` - Results in a hidden title bar and a full size content window, yet
       the title bar still has the standard window controls ("traffic lights") in
       the top left.
-    * `hidden-inset` - Results in a hidden title bar with an alternative look
+    * `hidden-inset` - Deprecated, use `hiddenInset` instead.
+    * `hiddenInset` - Results in a hidden title bar with an alternative look
       where the traffic light buttons are slightly more inset from the window edge.
+    * `customButtonsOnHover` Boolean (optional) - Draw custom close, minimize,
+      and full screen buttons on macOS frameless windows. These buttons will not
+      display unless hovered over in the top left of the window. These custom
+      buttons prevent issues with mouse events that occur with the standard
+      window toolbar buttons. **Note:** This option is currently experimental.
+  * `fullscreenWindowTitle` Boolean (optional) - Shows the title in the
+    tile bar in full screen mode on macOS for all `titleBarStyle` options.
+    Default is `false`.
   * `thickFrame` Boolean (optional) - Use `WS_THICKFRAME` style for frameless windows on
     Windows, which adds standard window frame. Setting it to `false` will remove
     window shadow and window animations. Default is `true`.
@@ -213,7 +242,9 @@ It creates a new `BrowserWindow` with native properties as set by the `options`.
     `maximize()` directly. Default is `false`.
   * `tabbingIdentifier` String (optional) - Tab group name, allows opening the
     window as a native tab on macOS 10.12+. Windows with the same tabbing
-    identifier will be grouped together.
+    identifier will be grouped together. This also adds a native new tab button
+    to your window's tab bar and allows your `app` and window to receive the
+    `new-window-for-tab` event.
   * `webPreferences` Object (optional) - Settings of web page's features.
     * `devTools` Boolean (optional) - Whether to enable DevTools. If it is set to `false`, can not use `BrowserWindow.webContents.openDevTools()` to open DevTools. Default is `true`.
     * `nodeIntegration` Boolean (optional) - Whether node integration is enabled. Default
@@ -287,7 +318,8 @@ It creates a new `BrowserWindow` with native properties as set by the `options`.
     * `minimumFontSize` Integer (optional) - Defaults to `0`.
     * `defaultEncoding` String (optional) - Defaults to `ISO-8859-1`.
     * `backgroundThrottling` Boolean (optional) - Whether to throttle animations and timers
-      when the page becomes background. Defaults to `true`.
+      when the page becomes background. This also affects the
+      [Page Visibility API][#page-visibility]. Defaults to `true`.
     * `offscreen` Boolean (optional) - Whether to enable offscreen rendering for the browser
       window. Defaults to `false`. See the
       [offscreen rendering tutorial](../tutorial/offscreen-rendering.md) for
@@ -307,7 +339,17 @@ It creates a new `BrowserWindow` with native properties as set by the `options`.
       'Electron Isolated Context' entry in the combo box at the top of the
       Console tab. **Note:** This option is currently experimental and may
       change or be removed in future Electron releases.
-    * `nativeWindowOpen` Boolean (optional) - Whether to use native `window.open()`. Defaults to `false`.
+    * `nativeWindowOpen` Boolean (optional) - Whether to use native
+      `window.open()`. Defaults to `false`.  **Note:** This option is currently
+      experimental.
+    * `webviewTag` Boolean (optional) - Whether to enable the [`<webview>` tag](webview-tag.md).
+      Defaults to the value of the `nodeIntegration` option. **Note:** The
+      `preload` script configured for the `<webview>` will have node integration
+      enabled when it is executed so you should ensure remote/untrusted content
+      is not able to create a `<webview>` tag with a possibly malicious `preload`
+      script. You can use the `will-attach-webview` event on [webContents](web-contents.md)
+      to strip away the `preload` script and to validate or alter the
+      `<webview>`'s initial settings.
 
 When setting minimum or maximum window size with `minWidth`/`maxWidth`/
 `minHeight`/`maxHeight`, it only constrains the users. It won't prevent you from
@@ -379,7 +421,7 @@ remove the reference to the window and avoid using it any more.
 
 #### Event: 'session-end' _Windows_
 
-Emitted when window session is going to end due to force shutdown or machine restart 
+Emitted when window session is going to end due to force shutdown or machine restart
 or session log off.
 
 #### Event: 'unresponsive'
@@ -511,6 +553,10 @@ Emitted when the window opens a sheet.
 #### Event: 'sheet-end' _macOS_
 
 Emitted when the window has closed a sheet.
+
+#### Event: 'new-window-for-tab' _macOS_
+
+Emitted when the native new tab button is clicked.
 
 ### Static Methods
 
@@ -718,7 +764,7 @@ height areas you have within the overall content view.
 * `path` String - The absolute path to the file to preview with QuickLook. This
   is important as Quick Look uses the file name and file extension on the path
   to determine the content type of the file to open.
-* `displayName` String (Optional) - The name of the file to display on the
+* `displayName` String (optional) - The name of the file to display on the
   Quick Look modal view. This is purely visual and does not affect the content
   type of the file. Defaults to `path`.
 
@@ -1028,7 +1074,7 @@ Same as `webContents.capturePage([rect, ]callback)`.
   * `httpReferrer` String (optional) - A HTTP Referrer url.
   * `userAgent` String (optional) - A user agent originating the request.
   * `extraHeaders` String (optional) - Extra headers separated by "\n"
-  * `postData` ([UploadRawData](structures/upload-raw-data.md) | [UploadFile](structures/upload-file.md) | [UploadFileSystem](structures/upload-file-system.md) | [UploadBlob](structures/upload-blob.md))[] - (optional)
+  * `postData` ([UploadRawData[]](structures/upload-raw-data.md) | [UploadFile[]](structures/upload-file.md) | [UploadFileSystem[]](structures/upload-file-system.md) | [UploadBlob[]](structures/upload-blob.md)) - (optional)
   * `baseURLForDataURL` String (optional) - Base url (with trailing path separator) for files to be loaded by the data url. This is needed only if the specified `url` is a data url and needs to load other files.
 
 Same as `webContents.loadURL(url[, options])`.
@@ -1311,6 +1357,7 @@ removed in future Electron releases.
 removed in future Electron releases.
 
 [blink-feature-string]: https://cs.chromium.org/chromium/src/third_party/WebKit/Source/platform/RuntimeEnabledFeatures.json5?l=62
+[page-visibility-api]: https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
 [quick-look]: https://en.wikipedia.org/wiki/Quick_Look
 [vibrancy-docs]: https://developer.apple.com/reference/appkit/nsvisualeffectview?language=objc
 [window-levels]: https://developer.apple.com/reference/appkit/nswindow/1664726-window_levels

@@ -4,10 +4,11 @@
     'product_name%': 'Electron',
     'company_name%': 'GitHub, Inc',
     'company_abbr%': 'github',
-    'version%': '1.7.0',
+    'version%': '1.7.5',
     'js2c_input_dir': '<(SHARED_INTERMEDIATE_DIR)/js2c',
   },
   'includes': [
+    'features.gypi',
     'filenames.gypi',
     'vendor/native_mate/native_mate_files.gypi',
   ],
@@ -22,6 +23,11 @@
           '<(source_root)/external_binaries',
         ],
       }],
+      ['enable_osr==1', {
+        'defines': [
+          'ENABLE_OSR',
+        ],
+      }],  # enable_osr==1
     ],
   },
   'targets': [
@@ -81,7 +87,7 @@
               # is marked for no PIE (ASLR).
               'postbuild_name': 'Make More Helpers',
               'action': [
-                'vendor/brightray/tools/mac/make_more_helpers.sh',
+                'tools/mac/make_more_helpers.sh',
                 'Frameworks',
                 '<(product_name)',
               ],
@@ -220,13 +226,14 @@
       'dependencies': [
         'atom_js2c',
         'vendor/pdf_viewer/pdf_viewer.gyp:pdf_viewer',
-        'vendor/brightray/brightray.gyp:brightray',
+        'brightray/brightray.gyp:brightray',
         'vendor/node/node.gyp:node',
       ],
       'defines': [
         # We need to access internal implementations of Node.
         'NODE_WANT_INTERNALS=1',
         'NODE_SHARED_MODE',
+        'HAVE_INSPECTOR=1',
         # This is defined in skia/skia_common.gypi.
         'SK_SUPPORT_LEGACY_GETTOPDEVICE',
         # Disable warnings for g_settings_list_schemas.
@@ -244,7 +251,6 @@
       'include_dirs': [
         '.',
         'chromium_src',
-        'vendor/brightray',
         'vendor/native_mate',
         # Include atom_natives.h.
         '<(SHARED_INTERMEDIATE_DIR)',
@@ -271,7 +277,7 @@
         ],
       },
       'export_dependent_settings': [
-        'vendor/brightray/brightray.gyp:brightray',
+        'brightray/brightray.gyp:brightray',
       ],
       'conditions': [
         ['libchromiumcontent_component', {

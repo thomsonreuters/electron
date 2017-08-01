@@ -20,7 +20,6 @@ using brightray::DevToolsFileSystemIndexer;
 namespace atom {
 
 class AtomBrowserContext;
-class AtomJavaScriptDialogManager;
 class NativeWindow;
 class WebDialogHelper;
 
@@ -54,6 +53,10 @@ class CommonWebContentsDelegate
 
   NativeWindow* owner_window() const { return owner_window_.get(); }
 
+  void set_ignore_menu_shortcuts(bool ignore) {
+    ignore_menu_shortcuts_ = ignore;
+  }
+
   bool is_html_fullscreen() const { return html_fullscreen_; }
 
  protected:
@@ -62,8 +65,6 @@ class CommonWebContentsDelegate
       content::WebContents* source,
       const content::OpenURLParams& params) override;
   bool CanOverscrollContent() const override;
-  content::JavaScriptDialogManager* GetJavaScriptDialogManager(
-      content::WebContents* source) override;
   content::ColorChooser* OpenColorChooser(
       content::WebContents* web_contents,
       SkColor color,
@@ -140,6 +141,8 @@ class CommonWebContentsDelegate
   // The window that this WebContents belongs to.
   base::WeakPtr<NativeWindow> owner_window_;
 
+  bool ignore_menu_shortcuts_;
+
   // Whether window is fullscreened by HTML5 api.
   bool html_fullscreen_;
 
@@ -147,7 +150,6 @@ class CommonWebContentsDelegate
   bool native_fullscreen_;
 
   std::unique_ptr<WebDialogHelper> web_dialog_helper_;
-  std::unique_ptr<AtomJavaScriptDialogManager> dialog_manager_;
   scoped_refptr<DevToolsFileSystemIndexer> devtools_file_system_indexer_;
 
   // Make sure BrowserContext is alwasys destroyed after WebContents.

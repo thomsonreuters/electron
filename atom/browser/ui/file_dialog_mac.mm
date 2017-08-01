@@ -40,6 +40,7 @@ void SetAllowedFileTypes(NSSavePanel* dialog, const Filters& filters) {
   if ([file_type_set count])
     file_types = [file_type_set allObjects];
 
+  [dialog setExtensionHidden:NO];
   [dialog setAllowedFileTypes:file_types];
 }
 
@@ -65,11 +66,22 @@ void SetupDialog(NSSavePanel* dialog,
     if (base::DirectoryExists(settings.default_path)) {
       default_dir = base::SysUTF8ToNSString(settings.default_path.value());
     } else {
-      default_dir =
-          base::SysUTF8ToNSString(settings.default_path.DirName().value());
+      if (settings.default_path.IsAbsolute()) {
+        default_dir =
+            base::SysUTF8ToNSString(settings.default_path.DirName().value());
+      }
+
       default_filename =
           base::SysUTF8ToNSString(settings.default_path.BaseName().value());
     }
+  }
+
+  if (settings.filters.empty()) {
+    [dialog setAllowsOtherFileTypes:YES];
+  } else {
+    // Set setAllowedFileTypes before setNameFieldStringValue as it might
+    // override the extension set using setNameFieldStringValue
+    SetAllowedFileTypes(dialog, settings.filters);
   }
 
   if (default_dir)
@@ -77,10 +89,6 @@ void SetupDialog(NSSavePanel* dialog,
   if (default_filename)
     [dialog setNameFieldStringValue:default_filename];
 
-  if (settings.filters.empty())
-    [dialog setAllowsOtherFileTypes:YES];
-  else
-    SetAllowedFileTypes(dialog, settings.filters);
 }
 
 void SetupDialogForProperties(NSOpenPanel* dialog, int properties) {
@@ -95,6 +103,8 @@ void SetupDialogForProperties(NSOpenPanel* dialog, int properties) {
     [dialog setShowsHiddenFiles:YES];
   if (properties & FILE_DIALOG_NO_RESOLVE_ALIASES)
     [dialog setResolvesAliases:NO];
+  if (properties & FILE_DIALOG_TREAT_PACKAGE_APP_AS_DIRECTORY)
+    [dialog setTreatsFilePackagesAsDirectories:YES];
 }
 
 // Run modal dialog with parent window and return user's choice.

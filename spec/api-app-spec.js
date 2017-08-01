@@ -534,16 +534,128 @@ describe('app module', function () {
     })
   })
 
-  describe('getAppMemoryInfo() API', function () {
-    it('returns the process memory of all running electron processes', function () {
-      const appMemoryInfo = app.getAppMemoryInfo()
-      assert.ok(appMemoryInfo.length > 0, 'App memory info object is not > 0')
-      for (const {memory, pid} of appMemoryInfo) {
+  describe('getAppMetrics() API', function () {
+    it('returns memory and cpu stats of all running electron processes', function () {
+      const appMetrics = app.getAppMetrics()
+      assert.ok(appMetrics.length > 0, 'App memory info object is not > 0')
+      const types = []
+      for (const {memory, pid, type, cpu} of appMetrics) {
         assert.ok(memory.workingSetSize > 0, 'working set size is not > 0')
         assert.ok(memory.privateBytes > 0, 'private bytes is not > 0')
         assert.ok(memory.sharedBytes > 0, 'shared bytes is not > 0')
         assert.ok(pid > 0, 'pid is not > 0')
+        assert.ok(type.length > 0, 'process type is null')
+        types.push(type)
+        assert.equal(typeof cpu.percentCPUUsage, 'number')
+        assert.equal(typeof cpu.idleWakeupsPerSecond, 'number')
       }
+
+      if (process.platform === 'darwin') {
+        assert.ok(types.includes('GPU'))
+      }
+
+      assert.ok(types.includes('Browser'))
+      assert.ok(types.includes('Tab'))
+    })
+  })
+
+  describe('getGPUFeatureStatus() API', function () {
+    it('returns the graphic features statuses', function () {
+      const features = app.getGPUFeatureStatus()
+      assert.equal(typeof features.webgl, 'string')
+      assert.equal(typeof features.gpu_compositing, 'string')
+    })
+  })
+
+  describe('mixed sandbox option', function () {
+    // FIXME Get these specs running on Linux
+    if (process.platform === 'linux') return
+
+    let appProcess = null
+    let server = null
+    const socketPath = process.platform === 'win32' ? '\\\\.\\pipe\\electron-mixed-sandbox' : '/tmp/electron-mixed-sandbox'
+
+    beforeEach(function (done) {
+      fs.unlink(socketPath, () => {
+        server = net.createServer()
+        server.listen(socketPath)
+        done()
+      })
+    })
+
+    afterEach(function (done) {
+      if (appProcess != null) {
+        appProcess.kill()
+      }
+
+      server.close(() => {
+        if (process.platform === 'win32') {
+          done()
+        } else {
+          fs.unlink(socketPath, () => {
+            done()
+          })
+        }
+      })
+    })
+
+    describe('when app.enableMixedSandbox() is called', () => {
+      it('adds --enable-sandbox to render processes created with sandbox: true', (done) => {
+        const appPath = path.join(__dirname, 'fixtures', 'api', 'mixed-sandbox-app')
+        appProcess = ChildProcess.spawn(remote.process.execPath, [appPath])
+
+        server.once('error', (error) => {
+          done(error)
+        })
+
+        server.on('connection', (client) => {
+          client.once('data', function (data) {
+            const argv = JSON.parse(data)
+            assert.equal(argv.sandbox.includes('--enable-sandbox'), true)
+            assert.equal(argv.sandbox.includes('--no-sandbox'), false)
+
+            assert.equal(argv.noSandbox.includes('--enable-sandbox'), false)
+            assert.equal(argv.noSandbox.includes('--no-sandbox'), true)
+
+            done()
+          })
+        })
+      })
+    })
+
+    describe('when the app is launched with --enable-mixed-sandbox', () => {
+      it('adds --enable-sandbox to render processes created with sandbox: true', (done) => {
+        const appPath = path.join(__dirname, 'fixtures', 'api', 'mixed-sandbox-app')
+        appProcess = ChildProcess.spawn(remote.process.execPath, [appPath, '--enable-mixed-sandbox'])
+
+        server.once('error', (error) => {
+          done(error)
+        })
+
+        server.on('connection', (client) => {
+          client.once('data', function (data) {
+            const argv = JSON.parse(data)
+            assert.equal(argv.sandbox.includes('--enable-sandbox'), true)
+            assert.equal(argv.sandbox.includes('--no-sandbox'), false)
+
+            assert.equal(argv.noSandbox.includes('--enable-sandbox'), false)
+            assert.equal(argv.noSandbox.includes('--no-sandbox'), true)
+
+            assert.equal(argv.noSandboxDevtools, true)
+            assert.equal(argv.sandboxDevtools, true)
+
+            done()
+          })
+        })
+      })
+    })
+  })
+
+  describe('disableDomainBlockingFor3DAPIs() API', function () {
+    it('throws when called after app is ready', function () {
+      assert.throws(function () {
+        app.disableDomainBlockingFor3DAPIs()
+      }, /before app is ready/)
     })
   })
 })

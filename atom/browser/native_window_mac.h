@@ -89,9 +89,9 @@ class NativeWindowMac : public NativeWindow,
   void SetContentProtection(bool enable) override;
   void SetBrowserView(NativeBrowserView* browser_view) override;
   void SetParentWindow(NativeWindow* parent) override;
-  gfx::NativeView GetNativeView() override;
-  gfx::NativeWindow GetNativeWindow() override;
-  gfx::AcceleratedWidget GetAcceleratedWidget() override;
+  gfx::NativeView GetNativeView() const override;
+  gfx::NativeWindow GetNativeWindow() const override;
+  gfx::AcceleratedWidget GetAcceleratedWidget() const override;
   void SetProgressBar(double progress, const ProgressState state) override;
   void SetOverlayIcon(const gfx::Image& overlay,
                       const std::string& description) override;
@@ -127,10 +127,13 @@ class NativeWindowMac : public NativeWindow,
     NORMAL,
     HIDDEN,
     HIDDEN_INSET,
+    CUSTOM_BUTTONS_ON_HOVER,
   };
   TitleBarStyle title_bar_style() const { return title_bar_style_; }
 
   bool zoom_to_page_width() const { return zoom_to_page_width_; }
+
+  bool fullscreen_window_title() const { return fullscreen_window_title_; }
 
  protected:
   // Return a vector of non-draggable regions that fill a window of size
@@ -140,8 +143,8 @@ class NativeWindowMac : public NativeWindow,
 
  private:
   // NativeWindow:
-  gfx::Rect ContentBoundsToWindowBounds(const gfx::Rect& bounds);
-  gfx::Rect WindowBoundsToContentBounds(const gfx::Rect& bounds);
+  gfx::Rect ContentBoundsToWindowBounds(const gfx::Rect& bounds) const;
+  gfx::Rect WindowBoundsToContentBounds(const gfx::Rect& bounds) const;
   void UpdateDraggableRegions(
       const std::vector<DraggableRegion>& regions) override;
 
@@ -175,6 +178,8 @@ class NativeWindowMac : public NativeWindow,
   bool was_fullscreen_;
 
   bool zoom_to_page_width_;
+
+  bool fullscreen_window_title_;
 
   NSInteger attention_request_id_;  // identifier from requestUserAttention
 

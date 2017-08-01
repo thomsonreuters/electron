@@ -80,6 +80,10 @@ v8::Local<v8::Value> GetBinding(v8::Isolate* isolate, v8::Local<v8::String> key,
   return exports;
 }
 
+base::CommandLine::StringVector GetArgv() {
+  return base::CommandLine::ForCurrentProcess()->argv();
+}
+
 void InitializeBindings(v8::Local<v8::Object> binding,
                         v8::Local<v8::Context> context) {
   auto isolate = context->GetIsolate();
@@ -87,6 +91,7 @@ void InitializeBindings(v8::Local<v8::Object> binding,
   b.SetMethod("get", GetBinding);
   b.SetMethod("crash", AtomBindings::Crash);
   b.SetMethod("hang", AtomBindings::Hang);
+  b.SetMethod("getArgv", GetArgv);
   b.SetMethod("getProcessMemoryInfo", &AtomBindings::GetProcessMemoryInfo);
   b.SetMethod("getSystemMemoryInfo", &AtomBindings::GetSystemMemoryInfo);
 }
@@ -211,7 +216,7 @@ void AtomSandboxedRendererClient::InvokeIpcCallback(
   auto callback_value = binding->Get(callback_key);
   DCHECK(callback_value->IsFunction());  // set by sandboxed_renderer/init.js
   auto callback = v8::Handle<v8::Function>::Cast(callback_value);
-  ignore_result(callback->Call(context, binding, args.size(), &args[0]));
+  ignore_result(callback->Call(context, binding, args.size(), args.data()));
 }
 
 }  // namespace atom

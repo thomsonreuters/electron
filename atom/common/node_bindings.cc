@@ -56,6 +56,7 @@ REFERENCE_MODULE(atom_common_asar);
 REFERENCE_MODULE(atom_common_clipboard);
 REFERENCE_MODULE(atom_common_crash_reporter);
 REFERENCE_MODULE(atom_common_native_image);
+REFERENCE_MODULE(atom_common_notification);
 REFERENCE_MODULE(atom_common_screen);
 REFERENCE_MODULE(atom_common_shell);
 REFERENCE_MODULE(atom_common_v8_util);
@@ -197,12 +198,6 @@ node::Environment* NodeBindings::CreateEnvironment(
   base::FilePath helper_exec_path;
   PathService::Get(content::CHILD_PROCESS_EXE, &helper_exec_path);
   process.Set("helperExecPath", helper_exec_path);
-
-  // Set process._debugWaitConnect if --debug-brk was specified to stop
-  // the debugger on the first line
-  if (browser_env_ == BROWSER &&
-      base::CommandLine::ForCurrentProcess()->HasSwitch("debug-brk"))
-    process.Set("_debugWaitConnect", true);
 
   return env;
 }
