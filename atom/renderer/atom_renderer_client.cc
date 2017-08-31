@@ -31,7 +31,7 @@ namespace atom {
 namespace {
 
 bool IsDevToolsExtension(content::RenderFrame* render_frame) {
-  return static_cast<GURL>(render_frame->GetWebFrame()->document().url())
+  return static_cast<GURL>(render_frame->GetWebFrame()->GetDocument().Url())
       .SchemeIs("chrome-extension");
 }
 
@@ -41,8 +41,6 @@ AtomRendererClient::AtomRendererClient()
     : node_integration_initialized_(false),
       node_bindings_(NodeBindings::Create(NodeBindings::RENDERER)),
       atom_bindings_(new AtomBindings(uv_default_loop())) {
-  isolated_world_ = base::CommandLine::ForCurrentProcess()->HasSwitch(
-      switches::kContextIsolation);
 }
 
 AtomRendererClient::~AtomRendererClient() {
@@ -169,14 +167,6 @@ void AtomRendererClient::WillDestroyWorkerContextOnWorkerThread(
           switches::kNodeIntegrationInWorker)) {
     WebWorkerObserver::GetCurrent()->ContextWillDestroy(context);
   }
-}
-
-v8::Local<v8::Context> AtomRendererClient::GetContext(
-    blink::WebFrame* frame, v8::Isolate* isolate) {
-  if (isolated_world())
-    return frame->worldScriptContext(isolate, World::ISOLATED_WORLD);
-  else
-    return frame->mainWorldScriptContext();
 }
 
 void AtomRendererClient::SetupMainWorldOverrides(

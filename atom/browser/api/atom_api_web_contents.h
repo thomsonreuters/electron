@@ -14,6 +14,7 @@
 #include "atom/browser/common_web_contents_delegate.h"
 #include "atom/browser/ui/autofill_popup.h"
 #include "content/common/cursors/webcursor.h"
+#include "content/public/browser/keyboard_event_processing_result.h"
 #include "content/public/browser/web_contents_observer.h"
 #include "content/public/common/favicon_url.h"
 #include "native_mate/handle.h"
@@ -115,7 +116,8 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void DisableDeviceEmulation();
   void InspectElement(int x, int y);
   void InspectServiceWorker();
-  void HasServiceWorker(const base::Callback<void(bool)>&);
+  void HasServiceWorker(
+      const base::Callback<void(bool)>&);
   void UnregisterServiceWorker(const base::Callback<void(bool)>&);
   void SetIgnoreMenuShortcuts(bool ignore);
   void SetAudioMuted(bool muted);
@@ -123,6 +125,7 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void Print(mate::Arguments* args);
   std::vector<printing::PrinterBasicInfo> GetPrinterList();
   void SetEmbedder(const WebContents* embedder);
+  v8::Local<v8::Value> GetNativeView() const;
 
   // Print current page as PDF.
   void PrintToPDF(const base::DictionaryValue& setting,
@@ -214,6 +217,10 @@ class WebContents : public mate::TrackableObject<WebContents>,
   // Returns the owner window.
   v8::Local<v8::Value> GetOwnerBrowserWindow();
 
+  // Grants the child process the capability to access URLs with the origin of
+  // the specified URL.
+  void GrantOriginAccess(const GURL& url);
+
   // Properties.
   int32_t ID() const;
   v8::Local<v8::Value> Session(v8::Isolate* isolate);
@@ -268,9 +275,9 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void HandleKeyboardEvent(
       content::WebContents* source,
       const content::NativeWebKeyboardEvent& event) override;
-  bool PreHandleKeyboardEvent(content::WebContents* source,
-                              const content::NativeWebKeyboardEvent& event,
-                              bool* is_keyboard_shortcut) override;
+  content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
+      content::WebContents* source,
+      const content::NativeWebKeyboardEvent& event) override;
   void EnterFullscreenModeForTab(content::WebContents* source,
                                  const GURL& origin) override;
   void ExitFullscreenModeForTab(content::WebContents* source) override;

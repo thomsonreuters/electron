@@ -1412,7 +1412,7 @@ bool NativeWindowMac::IsDocumentEdited() {
   return [window_ isDocumentEdited];
 }
 
-void NativeWindowMac::SetIgnoreMouseEvents(bool ignore) {
+void NativeWindowMac::SetIgnoreMouseEvents(bool ignore, bool) {
   [window_ setIgnoresMouseEvents:ignore];
 }
 
@@ -1604,10 +1604,10 @@ void NativeWindowMac::SetEscapeTouchBarItem(const mate::PersistentDictionary& it
 }
 
 void NativeWindowMac::OnInputEvent(const blink::WebInputEvent& event) {
-  switch (event.type()) {
-    case blink::WebInputEvent::GestureScrollBegin:
-    case blink::WebInputEvent::GestureScrollUpdate:
-    case blink::WebInputEvent::GestureScrollEnd:
+  switch (event.GetType()) {
+    case blink::WebInputEvent::kGestureScrollBegin:
+    case blink::WebInputEvent::kGestureScrollUpdate:
+    case blink::WebInputEvent::kGestureScrollEnd:
         this->NotifyWindowScrollTouchEdge();
       break;
     default:
@@ -1766,6 +1766,10 @@ void NativeWindowMac::UpdateDraggableRegionViews(
   // (mouseDownCanMoveWindow) and overlaying regions that are not draggable.
   std::vector<gfx::Rect> system_drag_exclude_areas =
       CalculateNonDraggableRegions(regions, webViewWidth, webViewHeight);
+
+  if (browser_view_) {
+    browser_view_->UpdateDraggableRegions(system_drag_exclude_areas);
+  }
 
   // Create and add a ControlRegionView for each region that needs to be
   // excluded from the dragging.

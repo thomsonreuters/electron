@@ -34,12 +34,17 @@ LINUX_DEPS_ARM = [
    'gcc-4.8-multilib-arm-linux-gnueabihf',
 ]
 
+LINUX_DEPS_ARM64 = [
+   'binutils-aarch64-linux-gnu',
+   'libc6-dev-arm64-cross',
+   'linux-libc-dev-arm64-cross',
+   'g++-4.8-aarch64-linux-gnu',
+   'gcc-4.8-aarch64-linux-gnu',
+   'gcc-aarch64-linux-gnu',
+]
 
 def main():
   os.environ['CI'] = '1'
-
-  if os.environ.has_key('JANKY_SHA1'):
-    setup_nodenv()
 
   # Ignore the CXX and CC env in CI.
   try:
@@ -59,14 +64,15 @@ def main():
     deps = LINUX_DEPS
     if target_arch == 'arm':
       deps += LINUX_DEPS_ARM
+    elif target_arch == 'arm64':
+      deps += LINUX_DEPS_ARM64
     else:
       deps += LINUX_DEPS_NO_ARM
     execute(['sudo', 'apt-get', 'install'] + deps)
 
-    execute(['sh', '-e', '/etc/init.d/xvfb', 'start'])
-
-  if PLATFORM == 'linux':
+  if PLATFORM == 'linux' and target_arch == 'x64':
     os.environ['DISPLAY'] = ':99.0'
+    execute(['sh', '-e', '/etc/init.d/xvfb', 'start'])
 
   # CI's npm is not reliable.
   npm = 'npm.cmd' if PLATFORM == 'win32' else 'npm'
@@ -79,7 +85,7 @@ def main():
   os.environ['PATH'] = os.path.pathsep.join([node_bin_dir,
                                              os.environ.get('PATH', '')])
 
-  is_release = os.environ.has_key('ELECTRON_RELEASE')
+  is_release = os.environ.get('ELECTRON_RELEASE', '') == '1'
   args = ['--target_arch=' + target_arch]
   if not is_release:
     args += ['--dev']
@@ -117,16 +123,6 @@ def log_versions():
   sys.stderr.flush()
   npm = 'npm.cmd' if PLATFORM == 'win32' else 'npm'
   subprocess.call([npm, '--version'])
-
-
-def setup_nodenv():
-  if os.path.isdir('/usr/local/share/nodenv'):
-    nodenv_root = os.path.join(os.environ['HOME'], '.nodenv')
-    os.environ['NODENV_ROOT'] = nodenv_root
-    os.environ['PATH'] = nodenv_root + '/bin:' + nodenv_root + '/shims:' + os.environ['PATH']
-    os.environ['NODENV_VERSION'] = 'v4.5.0'
-    subprocess.check_call(['/usr/local/share/nodenv/bin/nodenv', 'install', os.environ['NODENV_VERSION']])
-    subprocess.check_call(['/usr/local/share/nodenv/bin/nodenv', 'rehash'])
 
 
 if __name__ == '__main__':

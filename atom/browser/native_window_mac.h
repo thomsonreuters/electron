@@ -85,7 +85,7 @@ class NativeWindowMac : public NativeWindow,
   std::string GetRepresentedFilename() override;
   void SetDocumentEdited(bool edited) override;
   bool IsDocumentEdited() override;
-  void SetIgnoreMouseEvents(bool ignore) override;
+  void SetIgnoreMouseEvents(bool ignore, bool) override;
   void SetContentProtection(bool enable) override;
   void SetBrowserView(NativeBrowserView* browser_view) override;
   void SetParentWindow(NativeWindow* parent) override;
@@ -154,7 +154,7 @@ class NativeWindowMac : public NativeWindow,
   void UninstallView();
 
   // Install the drag view, which will cover the whole window and decides
-  // whehter we can drag.
+  // whether we can drag.
   void UpdateDraggableRegionViews(const std::vector<DraggableRegion>& regions);
 
   void RegisterInputEventObserver(content::RenderViewHost* host);

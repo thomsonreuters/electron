@@ -82,17 +82,17 @@ void FlipWindowStyle(HWND handle, bool on, DWORD flag) {
 #endif
 
 bool IsAltKey(const content::NativeWebKeyboardEvent& event) {
-  return event.windowsKeyCode == ui::VKEY_MENU;
+  return event.windows_key_code == ui::VKEY_MENU;
 }
 
 bool IsAltModifier(const content::NativeWebKeyboardEvent& event) {
   typedef content::NativeWebKeyboardEvent::Modifiers Modifiers;
-  int modifiers = event.modifiers();
-  modifiers &= ~Modifiers::NumLockOn;
-  modifiers &= ~Modifiers::CapsLockOn;
-  return (modifiers == Modifiers::AltKey) ||
-         (modifiers == (Modifiers::AltKey | Modifiers::IsLeft)) ||
-         (modifiers == (Modifiers::AltKey | Modifiers::IsRight));
+  int modifiers = event.GetModifiers();
+  modifiers &= ~Modifiers::kNumLockOn;
+  modifiers &= ~Modifiers::kCapsLockOn;
+  return (modifiers == Modifiers::kAltKey) ||
+         (modifiers == (Modifiers::kAltKey | Modifiers::kIsLeft)) ||
+         (modifiers == (Modifiers::kAltKey | Modifiers::kIsRight));
 }
 
 #if defined(USE_X11)
@@ -304,11 +304,16 @@ NativeWindowViews::NativeWindowViews(
   ::SetWindowLong(GetAcceleratedWidget(), GWL_EXSTYLE, ex_style);
 #endif
 
-  // TODO(zcbenz): This was used to force using native frame on Windows 2003, we
-  // should check whether setting it in InitParams can work.
   if (has_frame()) {
+    // TODO(zcbenz): This was used to force using native frame on Windows 2003,
+    // we should check whether setting it in InitParams can work.
     window_->set_frame_type(views::Widget::FrameType::FRAME_TYPE_FORCE_NATIVE);
     window_->FrameTypeChanged();
+#if defined(OS_WIN)
+    // thickFrame also works for normal window.
+    if (!thick_frame_)
+      FlipWindowStyle(GetAcceleratedWidget(), false, WS_THICKFRAME);
+#endif
   }
 
   gfx::Size size = bounds.size();
@@ -334,6 +339,11 @@ NativeWindowViews::NativeWindowViews(
 
 NativeWindowViews::~NativeWindowViews() {
   window_->RemoveObserver(this);
+
+#if defined(OS_WIN)
+  // Disable mouse forwarding to relinquish resources, should any be held.
+  SetForwardMouseMessages(false);
+#endif
 }
 
 void NativeWindowViews::Close() {
@@ -572,6 +582,12 @@ gfx::Size NativeWindowViews::GetContentSize() {
 void NativeWindowViews::SetContentSizeConstraints(
     const extensions::SizeConstraints& size_constraints) {
   NativeWindow::SetContentSizeConstraints(size_constraints);
+#if defined(OS_WIN)
+  // Changing size constraints would force adding the WS_THICKFRAME style, so
+  // do nothing if thickFrame is false.
+  if (!thick_frame_)
+    return;
+#endif
   // widget_delegate() is only available after Init() is called, we make use of
   // this to determine whether native widget has initialized.
   if (window_ && window_->widget_delegate())
@@ -584,7 +600,7 @@ void NativeWindowViews::SetContentSizeConstraints(
 
 void NativeWindowViews::SetResizable(bool resizable) {
 #if defined(OS_WIN)
-  if (has_frame())
+  if (has_frame() && thick_frame_)
     FlipWindowStyle(GetAcceleratedWidget(), resizable, WS_THICKFRAME);
 #elif defined(USE_X11)
   if (resizable != resizable_) {
@@ -790,7 +806,7 @@ bool NativeWindowViews::HasShadow() {
       != wm::ShadowElevation::NONE;
 }
 
-void NativeWindowViews::SetIgnoreMouseEvents(bool ignore) {
+void NativeWindowViews::SetIgnoreMouseEvents(bool ignore, bool forward) {
 #if defined(OS_WIN)
   LONG ex_style = ::GetWindowLong(GetAcceleratedWidget(), GWL_EXSTYLE);
   if (ignore)
@@ -798,6 +814,13 @@ void NativeWindowViews::SetIgnoreMouseEvents(bool ignore) {
   else
     ex_style &= ~(WS_EX_TRANSPARENT | WS_EX_LAYERED);
   ::SetWindowLong(GetAcceleratedWidget(), GWL_EXSTYLE, ex_style);
+
+  // Forwarding is always disabled when not ignoring mouse messages.
+  if (!ignore) {
+    SetForwardMouseMessages(false);
+  } else {
+    SetForwardMouseMessages(forward);
+  }
 #elif defined(USE_X11)
   if (ignore) {
     XRectangle r = {0, 0, 1, 1};
@@ -1252,15 +1275,15 @@ void NativeWindowViews::HandleKeyboardEvent(
   // Show accelerator when "Alt" is pressed.
   if (menu_bar_visible_ && IsAltKey(event))
     menu_bar_->SetAcceleratorVisibility(
-        event.type() == blink::WebInputEvent::RawKeyDown);
+        event.GetType() == blink::WebInputEvent::kRawKeyDown);
 
   // Show the submenu when "Alt+Key" is pressed.
-  if (event.type() == blink::WebInputEvent::RawKeyDown && !IsAltKey(event) &&
-      IsAltModifier(event)) {
+  if (event.GetType() == blink::WebInputEvent::kRawKeyDown &&
+      !IsAltKey(event) && IsAltModifier(event)) {
     if (!menu_bar_visible_ &&
-        (menu_bar_->GetAcceleratorIndex(event.windowsKeyCode) != -1))
+        (menu_bar_->GetAcceleratorIndex(event.windows_key_code) != -1))
       SetMenuBarVisibility(true);
-    menu_bar_->ActivateAccelerator(event.windowsKeyCode);
+    menu_bar_->ActivateAccelerator(event.windows_key_code);
     return;
   }
 
@@ -1268,11 +1291,11 @@ void NativeWindowViews::HandleKeyboardEvent(
     return;
 
   // Toggle the menu bar only when a single Alt is released.
-  if (event.type() == blink::WebInputEvent::RawKeyDown && IsAltKey(event)) {
+  if (event.GetType() == blink::WebInputEvent::kRawKeyDown && IsAltKey(event)) {
     // When a single Alt is pressed:
     menu_bar_alt_pressed_ = true;
-  } else if (event.type() == blink::WebInputEvent::KeyUp && IsAltKey(event) &&
-             menu_bar_alt_pressed_) {
+  } else if (event.GetType() == blink::WebInputEvent::kKeyUp &&
+             IsAltKey(event) && menu_bar_alt_pressed_) {
     // When a single Alt is released right after a Alt is pressed:
     menu_bar_alt_pressed_ = false;
     SetMenuBarVisibility(!menu_bar_visible_);

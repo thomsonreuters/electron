@@ -118,8 +118,9 @@ void PrintSettingsToJobSettings(const PrintSettings& settings,
   job_settings->SetInteger(kSettingScaleFactor, 100);
   job_settings->SetBoolean("rasterizePDF", false);
 
-  job_settings->SetInteger("desiredDpi", settings.desired_dpi());
   job_settings->SetInteger("dpi", settings.dpi());
+  job_settings->SetInteger("dpiHorizontal", 72);
+  job_settings->SetInteger("dpiVertical", 72);
 
   job_settings->SetBoolean(kSettingPrintToPDF, false);
   job_settings->SetBoolean(kSettingCloudPrintDialog, false);

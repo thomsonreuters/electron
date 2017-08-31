@@ -15,20 +15,18 @@ PrintMsg_Print_Params::PrintMsg_Print_Params()
       margin_left(0),
       dpi(0),
       scale_factor(1.0f),
-      desired_dpi(0),
       document_cookie(0),
       selection_only(false),
       supports_alpha_blend(false),
       preview_ui_id(-1),
       preview_request_id(0),
       is_first_request(false),
-      print_scaling_option(blink::WebPrintScalingOptionSourceSize),
+      print_scaling_option(blink::kWebPrintScalingOptionSourceSize),
       print_to_pdf(false),
       display_header_footer(false),
       title(),
       url(),
-      should_print_backgrounds(false),
-      device_name() {
+      should_print_backgrounds(false) {
 }
 
 PrintMsg_Print_Params::~PrintMsg_Print_Params() {}
@@ -41,20 +39,18 @@ void PrintMsg_Print_Params::Reset() {
   margin_left = 0;
   dpi = 0;
   scale_factor = 1.0f;
-  desired_dpi = 0;
   document_cookie = 0;
   selection_only = false;
   supports_alpha_blend = false;
   preview_ui_id = -1;
   preview_request_id = 0;
   is_first_request = false;
-  print_scaling_option = blink::WebPrintScalingOptionSourceSize;
+  print_scaling_option = blink::kWebPrintScalingOptionSourceSize;
   print_to_pdf = false;
   display_header_footer = false;
   title = base::string16();
   url = base::string16();
   should_print_backgrounds = false;
-  device_name.clear();
 }
 
 PrintMsg_PrintPages_Params::PrintMsg_PrintPages_Params()
