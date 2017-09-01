@@ -14,7 +14,7 @@ const github = new GitHubApi({
 })
 
 let tempDir
-temp.track()   // track and cleanup files at exit
+//temp.track()   // track and cleanup files at exit
 
 const files = [
   'cli.js',
@@ -118,7 +118,7 @@ new Promise((resolve, reject) => {
     resolve(tarballPath)
   })
 })
-.then((tarballPath) => childProcess.execSync(`npm publish ${tarballPath} --tag ${npmTag}`))
+//.then((tarballPath) => childProcess.execSync(`npm publish ${tarballPath} --tag ${npmTag}`))
 .catch((err) => {
   console.error(`Error: ${err}`)
   process.exit(1)
