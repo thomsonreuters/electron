@@ -22,6 +22,7 @@
 #include "ipc/ipc_message_macros.h"
 #include "native_mate/converter.h"
 #include "native_mate/dictionary.h"
+#include "third_party/WebKit/public/web/WebDocument.h"
 #include "third_party/WebKit/public/web/WebFrame.h"
 #include "third_party/WebKit/public/web/WebKit.h"
 #include "third_party/WebKit/public/web/WebLocalFrame.h"
@@ -38,6 +39,10 @@ namespace {
 const std::string kIpcKey = "ipcNative";
 const std::string kModuleCacheKey = "native-module-cache";
 
+bool IsDevToolsExtension(content::RenderFrame* render_frame) {
+  return static_cast<GURL>(render_frame->GetWebFrame()->document().url())
+      .SchemeIs("chrome-extension");
+}
 
 v8::Local<v8::Object> GetModuleCache(v8::Isolate* isolate) {
   mate::Dictionary global(isolate, isolate->GetCurrentContext()->Global());
@@ -155,6 +160,12 @@ void AtomSandboxedRendererClient::RenderViewCreated(
 
 void AtomSandboxedRendererClient::DidCreateScriptContext(
     v8::Handle<v8::Context> context, content::RenderFrame* render_frame) {
+
+  // Only allow preload for the main frame, unless it is a devtools
+  // extension page.
+  if (!render_frame->IsMainFrame() && !IsDevToolsExtension(render_frame))
+    return;
+
   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
   std::string preload_script = command_line->GetSwitchValueASCII(
       switches::kPreloadScript);
