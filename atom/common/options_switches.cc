@@ -29,6 +29,9 @@ const char kFullScreenable[] = "fullscreenable";
 const char kClosable[]       = "closable";
 const char kFullscreen[]     = "fullscreen";
 
+// Eikon hack Disable chromium sandbox.
+const char kDisableSandbox[] = "disable-sandbox";
+
 // Whether the window should show in taskbar.
 const char kSkipTaskbar[] = "skipTaskbar";
 
