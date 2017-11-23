@@ -1,18 +1,18 @@
 {
   "scripts": {
-    "cache-clean": "rm -rf ~/.electron && rm -rf dist",
+    "cache-clean": "rm -rf ~/.tr-electron && rm -rf dist",
     "postinstall": "node install.js",
     "pretest": "npm run cache-clean",
     "test": "standard"
   },
   "bin": {
-    "electron": "cli.js"
+    "tr-electron": "cli.js"
   },
   "main": "index.js",
   "types": "electron.d.ts",
   "dependencies": {
     "@types/node": "^7.0.18",
-    "electron-download": "^3.0.1",
+    "tr-electron-download": "^4.1.0",
     "extract-zip": "^1.0.3"
   },
   "devDependencies": {

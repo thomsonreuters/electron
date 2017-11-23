@@ -7,7 +7,7 @@ var fs = require('fs')
 var os = require('os')
 var path = require('path')
 var extract = require('extract-zip')
-var download = require('electron-download')
+var download = require('tr-electron-download')
 
 var installedVersion = null
 try {
