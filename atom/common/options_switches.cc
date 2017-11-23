@@ -29,6 +29,9 @@ const char kFullScreenable[] = "fullscreenable";
 const char kClosable[]       = "closable";
 const char kFullscreen[]     = "fullscreen";
 
+// Eikon hack Disable chromium sandbox.
+const char kDisableSandbox[] = "disable-sandbox";
+
 // Whether the window should show in taskbar.
 const char kSkipTaskbar[] = "skipTaskbar";
 
@@ -137,6 +140,9 @@ const char kWebviewTag[] = "webviewTag";
 }  // namespace options
 
 namespace switches {
+
+// Eikon hack Disable chromium sandbox.
+const char kDisableSandbox[] = "disable-sandbox";
 
 // Enable chromium sandbox.
 const char kEnableSandbox[] = "enable-sandbox";

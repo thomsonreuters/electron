@@ -126,6 +126,12 @@ void AtomMainDelegate::PreSandboxStartup() {
   if (!IsBrowserProcess(command_line))
     return;
 
+  //eikon hack: force sandbox by default if --disable-sandbox was not passed in the cmd line
+  if (!command_line->HasSwitch(switches::kDisableSandbox)) {
+         command_line->AppendSwitch(switches::kEnableSandbox);
+   }
+
+
   if (!command_line->HasSwitch(switches::kEnableMixedSandbox)) {
     if (command_line->HasSwitch(switches::kEnableSandbox)) {
       // Disable setuid sandbox since it is not longer required on
