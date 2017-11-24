@@ -77,26 +77,32 @@ scoped_refptr<BrowserContext> BrowserContext::Get(
   return nullptr;
 }
 
-BrowserContext::BrowserContext(const std::string& partition, bool in_memory)
-    : in_memory_(in_memory),
-      resource_context_(new ResourceContext),
-      storage_policy_(new SpecialStoragePolicy),
-      weak_factory_(this) {
-  if (!PathService::Get(DIR_USER_DATA, &path_)) {
-    PathService::Get(DIR_APP_DATA, &path_);
-    path_ = path_.Append(base::FilePath::FromUTF8Unsafe(GetApplicationName()));
-    PathService::Override(DIR_USER_DATA, path_);
-  }
+BrowserContext::BrowserContext(const std::string& partition, bool in_memory, const base::DictionaryValue& options)
+	: in_memory_(in_memory),
+	resource_context_(new ResourceContext),
+	storage_policy_(new SpecialStoragePolicy),
+	weak_factory_(this) {
+	if (!PathService::Get(DIR_USER_DATA, &path_)) {
+		PathService::Get(DIR_APP_DATA, &path_);
+		path_ = path_.Append(base::FilePath::FromUTF8Unsafe(GetApplicationName()));
+		PathService::Override(DIR_USER_DATA, path_);
+	}
 
-  if (!in_memory_ && !partition.empty())
-    path_ = path_.Append(FILE_PATH_LITERAL("Partitions"))
-                .Append(base::FilePath::FromUTF8Unsafe(
-                    MakePartitionName(partition)));
+	// Read options.
+	bool use_partition_cache_ = true;
+	options.GetBoolean("partitionCache", &use_partition_cache_);
 
-  content::BrowserContext::Initialize(this, path_);
+	if (use_partition_cache_ && !partition.empty()) {
+		path_ = path_.Append(FILE_PATH_LITERAL("Partitions"))
+		.Append(base::FilePath::FromUTF8Unsafe(
+			MakePartitionName(partition)));
+	}
 
-  browser_context_map_[PartitionKey(partition, in_memory)] = GetWeakPtr();
+	content::BrowserContext::Initialize(this, path_);
+
+	browser_context_map_[PartitionKey(partition, in_memory)] = GetWeakPtr();
 }
+
 
 BrowserContext::~BrowserContext() {
   NotifyWillBeDestroyed(this);

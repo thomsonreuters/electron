@@ -80,7 +80,7 @@ class BrowserContext : public base::RefCounted<BrowserContext>,
   PrefService* prefs() { return prefs_.get(); }
 
  protected:
-  BrowserContext(const std::string& partition, bool in_memory);
+  BrowserContext(const std::string& partition, bool in_memory, const base::DictionaryValue& options);
   ~BrowserContext() override;
 
   // Subclasses should override this to register custom preferences.

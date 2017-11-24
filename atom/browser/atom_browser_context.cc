@@ -71,7 +71,7 @@ std::string RemoveWhitespace(const std::string& str) {
 AtomBrowserContext::AtomBrowserContext(const std::string& partition,
                                        bool in_memory,
                                        const base::DictionaryValue& options)
-    : brightray::BrowserContext(partition, in_memory),
+    : brightray::BrowserContext(partition, in_memory, options),
       ct_delegate_(new AtomCTDelegate),
       network_delegate_(new AtomNetworkDelegate),
       cookie_delegate_(new AtomCookieDelegate) {
