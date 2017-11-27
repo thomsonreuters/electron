@@ -28,7 +28,7 @@ The `session` module has the following methods:
 * `partition` String
 * `options` Object
   * `cache` Boolean - Whether to enable cache.
-  * `partitionCache` Boolean - Whether partition create its own cache or use the global cache (defaults to true).
+  * `partitionCache` Boolean - Whether partition create its own cache or use the global cache. Defaults to true.
 
 Returns `Session` - A session instance from `partition` string. When there is an existing
 `Session` with the same `partition`, it will be returned; otherwise a new
