@@ -1,6 +1,6 @@
 {
   "name": "tr-electron",
-  "version": "1.7.9",
+  "version": "1.7.10",
   "repository": "https://github.com/thomsonreuters/electron",
   "description": "Build cross platform desktop apps with JavaScript, HTML, and CSS",
   "devDependencies": {
