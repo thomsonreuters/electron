@@ -1,6 +1,7 @@
 .DS_Store
 .env
-.npmrc
+.gclient_done
+**/.npmrc
 .tags*
 .vs/
 .vscode/
@@ -14,7 +15,6 @@
 *.vcxproj.filters
 *.vcxproj.user
 *.xcodeproj
-node_modules/
 /.idea/
 /brightray/brightray.opensdf
 /brightray/brightray.sdf
@@ -32,13 +32,17 @@ node_modules/
 /vendor/debian_jessie_arm-sysroot/
 /vendor/debian_jessie_arm64-sysroot/
 /vendor/debian_jessie_i386-sysroot/
+/vendor/debian_jessie_mips64-sysroot/
 /vendor/debian_wheezy_amd64-sysroot/
 /vendor/debian_wheezy_arm-sysroot/
 /vendor/debian_wheezy_i386-sysroot/
+/vendor/gcc-4.8.3-d197-n64-loongson/
+/vendor/readme-gcc483-loongson.txt
 /vendor/download/
 /vendor/llvm-build/
 /vendor/llvm/
-/vendor/node/deps/node-inspect/.npmrc
 /vendor/npm/
 /vendor/python_26/
-.gclient_done
+node_modules/
+SHASUMS256.txt
+**/package-lock.json

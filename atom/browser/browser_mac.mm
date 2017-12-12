@@ -4,6 +4,7 @@
 
 #include "atom/browser/browser.h"
 
+#include "atom/common/platform_util.h"
 #include "atom/browser/mac/atom_application.h"
 #include "atom/browser/mac/atom_application_delegate.h"
 #include "atom/browser/mac/dict_util.h"
@@ -144,6 +145,30 @@ std::string Browser::GetCurrentActivityType() {
   return base::SysNSStringToUTF8(userActivity.activityType);
 }
 
+void Browser::InvalidateCurrentActivity() {
+  [[AtomApplication sharedApplication] invalidateCurrentActivity];
+}
+
+void Browser::UpdateCurrentActivity(const std::string& type,
+                                    const base::DictionaryValue& user_info) {
+  [[AtomApplication sharedApplication]
+      updateCurrentActivity:base::SysUTF8ToNSString(type)
+               withUserInfo:DictionaryValueToNSDictionary(user_info)];
+}
+
+bool Browser::WillContinueUserActivity(const std::string& type) {
+  bool prevent_default = false;
+  for (BrowserObserver& observer : observers_)
+    observer.OnWillContinueUserActivity(&prevent_default, type);
+  return prevent_default;
+}
+
+void Browser::DidFailToContinueUserActivity(const std::string& type,
+                                            const std::string& error) {
+  for (BrowserObserver& observer : observers_)
+    observer.OnDidFailToContinueUserActivity(type, error);
+}
+
 bool Browser::ContinueUserActivity(const std::string& type,
                                    const base::DictionaryValue& user_info) {
   bool prevent_default = false;
@@ -152,22 +177,44 @@ bool Browser::ContinueUserActivity(const std::string& type,
   return prevent_default;
 }
 
+void Browser::UserActivityWasContinued(const std::string& type,
+                                       const base::DictionaryValue& user_info) {
+  for (BrowserObserver& observer : observers_)
+    observer.OnUserActivityWasContinued(type, user_info);
+}
+
+bool Browser::UpdateUserActivityState(const std::string& type,
+                                      const base::DictionaryValue& user_info) {
+  bool prevent_default = false;
+  for (BrowserObserver& observer : observers_)
+    observer.OnUpdateUserActivityState(&prevent_default, type, user_info);
+  return prevent_default;
+}
+
 Browser::LoginItemSettings Browser::GetLoginItemSettings(
     const LoginItemSettings& options) {
   LoginItemSettings settings;
+#if defined(MAS_BUILD)
+  settings.open_at_login = platform_util::GetLoginItemEnabled();
+#else
   settings.open_at_login = base::mac::CheckLoginItemStatus(
       &settings.open_as_hidden);
   settings.restore_state = base::mac::WasLaunchedAsLoginItemRestoreState();
   settings.opened_at_login = base::mac::WasLaunchedAsLoginOrResumeItem();
   settings.opened_as_hidden = base::mac::WasLaunchedAsHiddenLoginItem();
+#endif
   return settings;
 }
 
 void Browser::SetLoginItemSettings(LoginItemSettings settings) {
+#if defined(MAS_BUILD)
+  platform_util::SetLoginItemEnabled(settings.open_at_login);
+#else
   if (settings.open_at_login)
     base::mac::AddToLoginItems(settings.open_as_hidden);
   else
     base::mac::RemoveFromLoginItems();
+#endif
 }
 
 std::string Browser::GetExecutableFileVersion() const {

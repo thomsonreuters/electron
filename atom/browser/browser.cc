@@ -11,6 +11,7 @@
 #include "atom/browser/native_window.h"
 #include "atom/browser/window_list.h"
 #include "base/files/file_util.h"
+#include "base/message_loop/message_loop.h"
 #include "base/path_service.h"
 #include "base/run_loop.h"
 #include "base/threading/thread_task_runner_handle.h"
@@ -169,6 +170,12 @@ void Browser::RequestLogin(
     std::unique_ptr<base::DictionaryValue> request_details) {
   for (BrowserObserver& observer : observers_)
     observer.OnLogin(login_handler, *(request_details.get()));
+}
+
+void Browser::PreMainMessageLoopRun() {
+  for (BrowserObserver& observer : observers_) {
+    observer.OnPreMainMessageLoopRun();
+  }
 }
 
 void Browser::NotifyAndShutdown() {

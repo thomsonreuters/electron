@@ -32,9 +32,11 @@ app.commandLine.appendSwitch('disable-renderer-backgrounding')
 // Accessing stdout in the main process will result in the process.stdout
 // throwing UnknownSystemError in renderer process sometimes. This line makes
 // sure we can reproduce it in renderer process.
+// eslint-disable-next-line
 process.stdout
 
 // Access console to reproduce #3482.
+// eslint-disable-next-line
 console
 
 ipcMain.on('message', function (event, ...args) {
@@ -217,6 +219,10 @@ app.on('ready', function () {
       window.webContents.send('executeJavaScript-promise-response', result)
     }).catch((error) => {
       window.webContents.send('executeJavaScript-promise-error', error)
+
+      if (error && error.name) {
+        window.webContents.send('executeJavaScript-promise-error-name', error.name)
+      }
     })
 
     if (!hasCallback) {
@@ -374,6 +380,8 @@ const suspendListeners = (emitter, eventName, callback) => {
     listeners.forEach((listener) => {
       emitter.on(eventName, listener)
     })
+
+    // eslint-disable-next-line standard/no-callback-literal
     callback(...args)
   })
 }

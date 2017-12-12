@@ -14,6 +14,8 @@ IGNORE_FILES = [
   os.path.join('atom', 'browser', 'ui', 'cocoa', 'atom_touch_bar.h'),
   os.path.join('atom', 'browser', 'ui', 'cocoa',
                'touch_bar_forward_declarations.h'),
+  os.path.join('atom', 'browser', 'ui', 'cocoa', 'NSColor+Hex.h'),
+  os.path.join('atom', 'browser', 'ui', 'cocoa', 'NSString+ANSI.h'),
   os.path.join('atom', 'common', 'api', 'api_messages.h'),
   os.path.join('atom', 'common', 'common_message_generator.cc'),
   os.path.join('atom', 'common', 'common_message_generator.h'),
@@ -38,6 +40,10 @@ SOURCE_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 
 def main():
+  if not os.path.isfile(cpplint_path()):
+    print("[INFO] Skipping cpplint, dependencies has not been bootstrapped")
+    return
+
   os.chdir(SOURCE_ROOT)
   atom_files = list_files('atom',
                           ['app', 'browser', 'common', 'renderer', 'utility'],
@@ -60,8 +66,12 @@ def list_files(parent, directories, filters):
 
 
 def call_cpplint(files):
-  cpplint = os.path.join(SOURCE_ROOT, 'vendor', 'depot_tools', 'cpplint.py')
+  cpplint = cpplint_path()
   execute([sys.executable, cpplint] + files)
+
+
+def cpplint_path():
+  return os.path.join(SOURCE_ROOT, 'vendor', 'depot_tools', 'cpplint.py')
 
 
 if __name__ == '__main__':

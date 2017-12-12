@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "atom/browser/api/atom_api_window.h"
-#include "atom/common/native_mate_converters/value_converter.h"
 
 #include "atom/browser/api/atom_api_browser_view.h"
 #include "atom/browser/api/atom_api_menu.h"
@@ -17,6 +16,7 @@
 #include "atom/common/native_mate_converters/gurl_converter.h"
 #include "atom/common/native_mate_converters/image_converter.h"
 #include "atom/common/native_mate_converters/string16_converter.h"
+#include "atom/common/native_mate_converters/value_converter.h"
 #include "atom/common/options_switches.h"
 #include "base/command_line.h"
 #include "base/threading/thread_task_runner_handle.h"
@@ -144,6 +144,7 @@ void Window::Init(v8::Isolate* isolate,
       options,
       parent.IsEmpty() ? nullptr : parent->window_.get()));
   web_contents->SetOwnerWindow(window_.get());
+  window_->set_is_offscreen_dummy(api_web_contents_->IsOffScreen());
 
 #if defined(TOOLKIT_VIEWS)
   // Sets the window icon.
@@ -603,6 +604,14 @@ void Window::SetSkipTaskbar(bool skip) {
   window_->SetSkipTaskbar(skip);
 }
 
+void Window::SetSimpleFullScreen(bool simple_fullscreen) {
+  window_->SetSimpleFullScreen(simple_fullscreen);
+}
+
+bool Window::IsSimpleFullScreen() {
+  return window_->IsSimpleFullScreen();
+}
+
 void Window::SetKiosk(bool kiosk) {
   window_->SetKiosk(kiosk);
 }
@@ -621,6 +630,14 @@ void Window::SetHasShadow(bool has_shadow) {
 
 bool Window::HasShadow() {
   return window_->HasShadow();
+}
+
+void Window::SetOpacity(const double opacity) {
+  window_->SetOpacity(opacity);
+}
+
+double Window::GetOpacity() {
+  return window_->GetOpacity();
 }
 
 void Window::FocusOnWebView() {
@@ -910,6 +927,30 @@ void Window::SetAutoHideCursor(bool auto_hide) {
   window_->SetAutoHideCursor(auto_hide);
 }
 
+void Window::SelectPreviousTab() {
+  window_->SelectPreviousTab();
+}
+
+void Window::SelectNextTab() {
+  window_->SelectNextTab();
+}
+
+void Window::MergeAllWindows() {
+  window_->MergeAllWindows();
+}
+
+void Window::MoveTabToNewWindow() {
+  window_->MoveTabToNewWindow();
+}
+
+void Window::ToggleTabBar() {
+  window_->ToggleTabBar();
+}
+
+void Window::AddTabbedWindow(NativeWindow* window) {
+  window_->AddTabbedWindow(window);
+}
+
 void Window::SetVibrancy(mate::Arguments* args) {
   std::string type;
 
@@ -1021,11 +1062,15 @@ void Window::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("getTitle", &Window::GetTitle)
       .SetMethod("flashFrame", &Window::FlashFrame)
       .SetMethod("setSkipTaskbar", &Window::SetSkipTaskbar)
+      .SetMethod("setSimpleFullScreen", &Window::SetSimpleFullScreen)
+      .SetMethod("isSimpleFullScreen", &Window::IsSimpleFullScreen)
       .SetMethod("setKiosk", &Window::SetKiosk)
       .SetMethod("isKiosk", &Window::IsKiosk)
       .SetMethod("setBackgroundColor", &Window::SetBackgroundColor)
       .SetMethod("setHasShadow", &Window::SetHasShadow)
       .SetMethod("hasShadow", &Window::HasShadow)
+      .SetMethod("setOpacity", &Window::SetOpacity)
+      .SetMethod("getOpacity", &Window::GetOpacity)
       .SetMethod("setRepresentedFilename", &Window::SetRepresentedFilename)
       .SetMethod("getRepresentedFilename", &Window::GetRepresentedFilename)
       .SetMethod("setDocumentEdited", &Window::SetDocumentEdited)
@@ -1050,6 +1095,12 @@ void Window::BuildPrototype(v8::Isolate* isolate,
                  &Window::IsVisibleOnAllWorkspaces)
 #if defined(OS_MACOSX)
       .SetMethod("setAutoHideCursor", &Window::SetAutoHideCursor)
+      .SetMethod("mergeAllWindows", &Window::MergeAllWindows)
+      .SetMethod("selectPreviousTab", &Window::SelectPreviousTab)
+      .SetMethod("selectNextTab", &Window::SelectNextTab)
+      .SetMethod("moveTabToNewWindow", &Window::MoveTabToNewWindow)
+      .SetMethod("toggleTabBar", &Window::ToggleTabBar)
+      .SetMethod("addTabbedWindow", &Window::AddTabbedWindow)
 #endif
       .SetMethod("setVibrancy", &Window::SetVibrancy)
       .SetMethod("_setTouchBarItems", &Window::SetTouchBar)

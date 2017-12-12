@@ -73,9 +73,11 @@ class SystemPreferences : public mate::EventEmitter<SystemPreferences>
   void UnsubscribeLocalNotification(int request_id);
   v8::Local<v8::Value> GetUserDefault(const std::string& name,
                                       const std::string& type);
+  void RegisterDefaults(mate::Arguments* args);
   void SetUserDefault(const std::string& name,
                       const std::string& type,
                       mate::Arguments* args);
+  void RemoveUserDefault(const std::string& name);
   bool IsSwipeTrackingFromScrollEventsEnabled();
 #endif
   bool IsDarkMode();

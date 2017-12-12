@@ -154,11 +154,15 @@ class Window : public mate::TrackableObject<Window>,
   std::string GetTitle();
   void FlashFrame(bool flash);
   void SetSkipTaskbar(bool skip);
+  void SetSimpleFullScreen(bool simple_fullscreen);
+  bool IsSimpleFullScreen();
   void SetKiosk(bool kiosk);
   bool IsKiosk();
   void SetBackgroundColor(const std::string& color_name);
   void SetHasShadow(bool has_shadow);
   bool HasShadow();
+  void SetOpacity(const double opacity);
+  double GetOpacity();
   void FocusOnWebView();
   void BlurWebView();
   bool IsWebViewFocused();
@@ -211,6 +215,13 @@ class Window : public mate::TrackableObject<Window>,
   bool IsVisibleOnAllWorkspaces();
 
   void SetAutoHideCursor(bool auto_hide);
+
+  void SelectPreviousTab();
+  void SelectNextTab();
+  void MergeAllWindows();
+  void MoveTabToNewWindow();
+  void ToggleTabBar();
+  void AddTabbedWindow(NativeWindow* window);
 
   void SetVibrancy(mate::Arguments* args);
   void SetTouchBar(const std::vector<mate::PersistentDictionary>& items);

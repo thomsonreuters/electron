@@ -196,6 +196,7 @@ ProcessSingleton::ProcessSingleton(
 }
 
 ProcessSingleton::~ProcessSingleton() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (lock_file_ != INVALID_HANDLE_VALUE)
     ::CloseHandle(lock_file_);
 }
@@ -257,6 +258,9 @@ ProcessSingleton::NotifyOtherProcessOrCreate() {
   }
   return result;
 }
+
+void ProcessSingleton::StartListeningOnSocket() {}
+void ProcessSingleton::OnBrowserReady() {}
 
 // Look for a Chrome instance that uses the same profile directory. If there
 // isn't one, create a message window with its title set to the profile

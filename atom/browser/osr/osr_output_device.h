@@ -24,7 +24,7 @@ class OffScreenOutputDevice : public cc::SoftwareOutputDevice {
   SkCanvas* BeginPaint(const gfx::Rect& damage_rect) override;
   void EndPaint() override;
 
-  void SetActive(bool active);
+  void SetActive(bool active, bool paint);
   void OnPaint(const gfx::Rect& damage_rect);
 
  private:
@@ -35,6 +35,7 @@ class OffScreenOutputDevice : public cc::SoftwareOutputDevice {
 
   std::unique_ptr<SkCanvas> canvas_;
   std::unique_ptr<SkBitmap> bitmap_;
+  gfx::Rect pending_damage_rect_;
 
   DISALLOW_COPY_AND_ASSIGN(OffScreenOutputDevice);
 };

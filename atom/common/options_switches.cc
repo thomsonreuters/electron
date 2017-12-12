@@ -36,6 +36,8 @@ const char kSkipTaskbar[] = "skipTaskbar";
 // http://www.opera.com/support/mastering/kiosk/
 const char kKiosk[] = "kiosk";
 
+const char kSimpleFullScreen[] = "simpleFullscreen";
+
 // Make windows stays on the top of all other windows.
 const char kAlwaysOnTop[] = "alwaysOnTop";
 
@@ -83,6 +85,9 @@ const char kBackgroundColor[] = "backgroundColor";
 
 // Whether the window should have a shadow.
 const char kHasShadow[] = "hasShadow";
+
+// Browser window opacity
+const char kOpacity[] = "opacity";
 
 // Whether the window can be activated.
 const char kFocusable[] = "focusable";
@@ -175,6 +180,7 @@ const char kAppPath[] = "app-path";
 const char kBackgroundColor[]  = "background-color";
 const char kPreloadScript[]    = "preload";
 const char kPreloadURL[]       = "preload-url";
+const char kPreloadScripts[]   = "preload-scripts";
 const char kNodeIntegration[]  = "node-integration";
 const char kContextIsolation[] = "context-isolation";
 const char kGuestInstanceID[]  = "guest-instance-id";

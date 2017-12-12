@@ -149,6 +149,53 @@ ID as the activity's source app and that supports the activity's type.
 Supported activity types are specified in the app's `Info.plist` under the
 `NSUserActivityTypes` key.
 
+### Event: 'will-continue-activity' _macOS_
+
+Returns:
+
+* `event` Event
+* `type` String - A string identifying the activity. Maps to
+  [`NSUserActivity.activityType`][activity-type].
+
+Emitted during [Handoff][handoff] before an activity from a different device wants
+to be resumed. You should call `event.preventDefault()` if you want to handle
+this event.
+
+### Event: 'continue-activity-error' _macOS_
+
+Returns:
+
+* `event` Event
+* `type` String - A string identifying the activity. Maps to
+  [`NSUserActivity.activityType`][activity-type].
+* `error` String - A string with the error's localized description.
+
+Emitted during [Handoff][handoff] when an activity from a different device
+fails to be resumed.
+
+### Event: 'activity-was-continued' _macOS_
+
+Returns:
+
+* `event` Event
+* `type` String - A string identifying the activity. Maps to
+  [`NSUserActivity.activityType`][activity-type].
+* `userInfo` Object - Contains app-specific state stored by the activity.
+
+Emitted during [Handoff][handoff] after an activity from this device was successfully
+resumed on another one.
+
+### Event: 'update-activity-state' _macOS_
+
+Returns:
+
+* `event` Event
+* `type` String - A string identifying the activity. Maps to
+  [`NSUserActivity.activityType`][activity-type].
+* `userInfo` Object - Contains app-specific state stored by the activity.
+
+Emitted when [Handoff][handoff] is about to be resumed on another device. If you need to update the state to be transferred, you should call `event.preventDefault()` immediatelly, construct a new `userInfo` dictionary and call `app.updateCurrentActiviy()` in a timely manner. Otherwise the operation will fail and `continue-activity-error` will be called.
+
 ### Event: 'new-window-for-tab' _macOS_
 
 Returns:
@@ -164,7 +211,7 @@ tab button is only visible if the current `BrowserWindow` has a
 Returns:
 
 * `event` Event
-* `window` BrowserWindow
+* `window` [BrowserWindow](browser-window.md)
 
 Emitted when a [browserWindow](browser-window.md) gets blurred.
 
@@ -173,7 +220,7 @@ Emitted when a [browserWindow](browser-window.md) gets blurred.
 Returns:
 
 * `event` Event
-* `window` BrowserWindow
+* `window` [BrowserWindow](browser-window.md)
 
 Emitted when a [browserWindow](browser-window.md) gets focused.
 
@@ -182,7 +229,7 @@ Emitted when a [browserWindow](browser-window.md) gets focused.
 Returns:
 
 * `event` Event
-* `window` BrowserWindow
+* `window` [BrowserWindow](browser-window.md)
 
 Emitted when a new [browserWindow](browser-window.md) is created.
 
@@ -191,7 +238,7 @@ Emitted when a new [browserWindow](browser-window.md) is created.
 Returns:
 
 * `event` Event
-* `webContents` WebContents
+* `webContents` [WebContents](web-contents.md)
 
 Emitted when a new [webContents](web-contents.md) is created.
 
@@ -330,7 +377,7 @@ returning `false` in the `beforeunload` event handler.
 
 * `exitCode` Integer (optional)
 
-Exits immediately with `exitCode`.  `exitCode` defaults to 0.
+Exits immediately with `exitCode`. `exitCode` defaults to 0.
 
 All windows will be closed immediately without asking user and the `before-quit`
 and `will-quit` events will not be emitted.
@@ -338,7 +385,7 @@ and `will-quit` events will not be emitted.
 ### `app.relaunch([options])`
 
 * `options` Object (optional)
-  * `args` String[] - (optional)
+  * `args` String[] (optional)
   * `execPath` String (optional)
 
 Relaunches the app when current instance exits.
@@ -411,7 +458,8 @@ You can request the following paths by the name:
 * `music` Directory for a user's music.
 * `pictures` Directory for a user's pictures.
 * `videos` Directory for a user's videos.
-* `pepperFlashSystemPlugin`  Full path to the system version of the Pepper Flash plugin.
+* `logs` Directory for your app's log folder.
+* `pepperFlashSystemPlugin` Full path to the system version of the Pepper Flash plugin.
 
 ### `app.getFileIcon(path[, options], callback)`
 
@@ -495,7 +543,7 @@ bar, and on macOS you can visit it from dock menu.
 
 Clears the recent documents list.
 
-### `app.setAsDefaultProtocolClient(protocol[, path, args])` _macOS_ _Windows_
+### `app.setAsDefaultProtocolClient(protocol[, path, args])`
 
 * `protocol` String - The name of your protocol, without `://`. If you want your
   app to handle `electron://` links, call this method with `electron` as the
@@ -748,6 +796,22 @@ is eligible for [Handoff][handoff] to another device afterward.
 
 Returns `String` - The type of the currently running activity.
 
+### `app.invalidateCurrentActivity()` _macOS_
+
+* `type` String - Uniquely identifies the activity. Maps to
+  [`NSUserActivity.activityType`][activity-type].
+
+Invalidates the current [Handoff][handoff] user activity.
+
+### `app.updateCurrentActivity(type, userInfo)` _macOS_
+
+* `type` String - Uniquely identifies the activity. Maps to
+  [`NSUserActivity.activityType`][activity-type].
+* `userInfo` Object - App-specific state to store for use by another device.
+
+Updates the current activity if its type matches `type`, merging the entries from
+`userInfo` into its current `userInfo` dictionary.
+
 ### `app.setAppUserModelId(id)` _Windows_
 
 * `id` String
@@ -782,14 +846,14 @@ This method can only be called before app is ready.
 
 ### `app.getAppMemoryInfo()` _Deprecated_
 
-Returns [`ProcessMetric[]`](structures/process-metric.md):  Array of `ProcessMetric` objects that correspond to memory and cpu usage statistics of all the processes associated with the app.
+Returns [`ProcessMetric[]`](structures/process-metric.md): Array of `ProcessMetric` objects that correspond to memory and cpu usage statistics of all the processes associated with the app.
 **Note:** This method is deprecated, use `app.getAppMetrics()` instead.
 
 ### `app.getAppMetrics()`
 
-Returns [`ProcessMetric[]`](structures/process-metric.md):  Array of `ProcessMetric` objects that correspond to memory and cpu usage statistics of all the processes associated with the app.
+Returns [`ProcessMetric[]`](structures/process-metric.md): Array of `ProcessMetric` objects that correspond to memory and cpu usage statistics of all the processes associated with the app.
 
-### `app.getGpuFeatureStatus()`
+### `app.getGPUFeatureStatus()`
 
 Returns [`GPUFeatureStatus`](structures/gpu-feature-status.md) - The Graphics Feature Status from `chrome://gpu/`.
 
@@ -829,30 +893,27 @@ need to pass the same arguments here for `openAtLogin` to be set correctly.
 Returns `Object`:
 
 * `openAtLogin` Boolean - `true` if the app is set to open at login.
-* `openAsHidden` Boolean - `true` if the app is set to open as hidden at login.
-  This setting is only supported on macOS.
-* `wasOpenedAtLogin` Boolean - `true` if the app was opened at login
-  automatically. This setting is only supported on macOS.
-* `wasOpenedAsHidden` Boolean - `true` if the app was opened as a hidden login
+* `openAsHidden` Boolean _macOS_ - `true` if the app is set to open as hidden at login.
+  This setting is not available on [MAS builds][mas-builds].
+* `wasOpenedAtLogin` Boolean _macOS_ - `true` if the app was opened at login
+  automatically. This setting is not available on [MAS builds][mas-builds].
+* `wasOpenedAsHidden` Boolean _macOS_ - `true` if the app was opened as a hidden login
   item. This indicates that the app should not open any windows at startup.
-  This setting is only supported on macOS.
-* `restoreState` Boolean - `true` if the app was opened as a login item that
+  This setting is not available on [MAS builds][mas-builds].
+* `restoreState` Boolean _macOS_ - `true` if the app was opened as a login item that
   should restore the state from the previous session. This indicates that the
   app should restore the windows that were open the last time the app was
-  closed. This setting is only supported on macOS.
-
-**Note:** This API has no effect on [MAS builds][mas-builds].
+  closed. This setting is not available on [MAS builds][mas-builds].
 
 ### `app.setLoginItemSettings(settings)` _macOS_ _Windows_
 
 * `settings` Object
   * `openAtLogin` Boolean (optional) - `true` to open the app at login, `false` to remove
     the app as a login item. Defaults to `false`.
-  * `openAsHidden` Boolean (optional) - `true` to open the app as hidden. Defaults to
+  * `openAsHidden` Boolean (optional) _macOS_ - `true` to open the app as hidden. Defaults to
     `false`. The user can edit this setting from the System Preferences so
     `app.getLoginItemStatus().wasOpenedAsHidden` should be checked when the app
-    is opened to know the current value. This setting is only supported on
-    macOS.
+    is opened to know the current value. This setting is not available on [MAS builds][mas-builds].
   * `path` String (optional) _Windows_ - The executable to launch at login.
     Defaults to `process.execPath`.
   * `args` String[] (optional) _Windows_ - The command-line arguments to pass to
@@ -880,8 +941,6 @@ app.setLoginItemSettings({
 })
 ```
 
-**Note:** This API has no effect on [MAS builds][mas-builds].
-
 ### `app.isAccessibilitySupportEnabled()` _macOS_ _Windows_
 
 Returns `Boolean` - `true` if Chrome's accessibility support is enabled,
@@ -889,6 +948,15 @@ Returns `Boolean` - `true` if Chrome's accessibility support is enabled,
 technologies, such as screen readers, has been detected. See
 https://www.chromium.org/developers/design-documents/accessibility for more
 details.
+
+### `app.setAccessibilitySupportEnabled(enabled)` _macOS_ _Windows_
+
+* `enabled` Boolean - Enable or disable [accessibility tree](https://developers.google.com/web/fundamentals/accessibility/semantics-builtin/the-accessibility-tree) rendering
+
+Manually enables Chrome's accessibility support, allowing to expose accessibility switch to users in application settings. https://www.chromium.org/developers/design-documents/accessibility for more
+details. Disabled by default.
+
+**Note:** Rendering accessibility tree can significantly affect the performance of your app. It should not be enabled by default.
 
 ### `app.setAboutPanelOptions(options)` _macOS_
 
@@ -926,6 +994,26 @@ correctly.
 Enables mixed sandbox mode on the app.
 
 This method can only be called before app is ready.
+
+### `app.isInApplicationsFolder()` _macOS_
+
+Returns `Boolean` - Whether the application is currently running from the
+systems Application folder. Use in combination with `app.moveToApplicationsFolder()`
+
+### `app.moveToApplicationsFolder()` _macOS_
+
+Returns `Boolean` - Whether the move was successful. Please note that if
+the move is successful your application will quit and relaunch.
+
+No confirmation dialog will be presented by default, if you wish to allow
+the user to confirm the operation you may do so using the
+[`dialog`](dialog.md) API.
+
+**NOTE:** This method throws errors if anything other than the user causes the
+move to fail. For instance if the user cancels the authorization dialog this
+method returns false. If we fail to perform the copy then this method will
+throw an error. The message in the error should be informative and tell
+you exactly what went wrong
 
 ### `app.dock.bounce([type])` _macOS_
 

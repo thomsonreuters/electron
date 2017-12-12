@@ -4,7 +4,7 @@
     'product_name%': 'Electron',
     'company_name%': 'GitHub, Inc',
     'company_abbr%': 'github',
-    'version%': '1.7.6',
+    'version%': '1.8.2-beta.2',
     'js2c_input_dir': '<(SHARED_INTERMEDIATE_DIR)/js2c',
   },
   'includes': [
@@ -118,6 +118,19 @@
                     'external_binaries/Squirrel.framework',
                     'external_binaries/ReactiveCocoa.framework',
                     'external_binaries/Mantle.framework',
+                  ],
+                },
+              ],
+            }],
+            ['mas_build==1', {
+              'dependencies': [
+                '<(project_name)_login_helper',
+              ],
+              'copies': [
+                {
+                  'destination': '<(PRODUCT_DIR)/<(product_name).app/Contents/Library/LoginItems',
+                  'files': [
+                    '<(PRODUCT_DIR)/<(product_name) Login Helper.app',
                   ],
                 },
               ],
@@ -241,10 +254,15 @@
         'GLIB_DISABLE_DEPRECATION_WARNINGS',
         # Defined in Chromium but not exposed in its gyp file.
         'V8_USE_EXTERNAL_STARTUP_DATA',
-        'V8_SHARED',
+
+        # Import V8 symbols from shared library (node.dll / libnode.so)
         'USING_V8_SHARED',
         'USING_V8_PLATFORM_SHARED',
         'USING_V8_BASE_SHARED',
+
+        # See Chromium src/third_party/protobuf/BUILD.gn
+        'GOOGLE_PROTOBUF_NO_RTTI',
+        'GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER',
       ],
       'sources': [
         '<@(lib_sources)',
@@ -271,6 +289,7 @@
         '<(libchromiumcontent_src_dir)/third_party/',
         '<(libchromiumcontent_src_dir)/components/cdm',
         '<(libchromiumcontent_src_dir)/third_party/widevine',
+        '<(libchromiumcontent_src_dir)/third_party/protobuf/src',
       ],
       'direct_dependent_settings': {
         'include_dirs': [
@@ -350,7 +369,7 @@
               # Make binary search for libraries under current directory, so we
               # don't have to manually set $LD_LIBRARY_PATH:
               # http://serverfault.com/questions/279068/cant-find-so-in-the-same-directory-as-the-executable
-              '-rpath \$$ORIGIN',
+              '-Wl,-rpath=\$$ORIGIN',
               # Make native module dynamic loading work.
               '-rdynamic',
             ],
@@ -358,7 +377,6 @@
           # Required settings of using breakpad.
           'cflags_cc': [
             '-Wno-empty-body',
-            '-Wno-reserved-user-defined-literal',
           ],
           'include_dirs': [
             'vendor/breakpad/src',
@@ -367,6 +385,12 @@
             'vendor/breakpad/breakpad.gyp:breakpad_client',
           ],
         }],  # OS=="linux"
+        ['OS=="linux" and clang==1', {
+          # Required settings of using breakpad.
+          'cflags_cc': [
+            '-Wno-reserved-user-defined-literal',
+          ],
+        }],  # OS=="linux" and clang==1
       ],
     },  # target <(product_name)_lib
     {
@@ -566,6 +590,7 @@
               '$(SDKROOT)/System/Library/Frameworks/Quartz.framework',
               '$(SDKROOT)/System/Library/Frameworks/Security.framework',
               '$(SDKROOT)/System/Library/Frameworks/SecurityInterface.framework',
+              '$(SDKROOT)/System/Library/Frameworks/ServiceManagement.framework',
             ],
           },
           'mac_bundle': 1,
@@ -684,6 +709,32 @@
             ],
           },
         },  # target helper
+        {
+          'target_name': '<(project_name)_login_helper',
+          'product_name': '<(product_name) Login Helper',
+          'type': 'executable',
+          'sources': [
+            '<@(login_helper_sources)',
+          ],
+          'include_dirs': [
+            '.',
+            'vendor',
+            '<(libchromiumcontent_src_dir)',
+          ],
+          'link_settings': {
+            'libraries': [
+              '$(SDKROOT)/System/Library/Frameworks/AppKit.framework',
+            ],
+          },
+          'mac_bundle': 1,
+          'xcode_settings': {
+            'ATOM_BUNDLE_ID': 'com.<(company_abbr).<(project_name).loginhelper',
+            'INFOPLIST_FILE': 'atom/app/resources/mac/loginhelper-Info.plist',
+            'OTHER_LDFLAGS': [
+              '-ObjC',
+            ],
+          },
+        },  # target login_helper
       ],
     }],  # OS!="mac"
   ],

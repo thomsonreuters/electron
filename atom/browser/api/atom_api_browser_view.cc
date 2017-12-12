@@ -114,7 +114,7 @@ void BrowserView::SetBackgroundColor(const std::string& color_name) {
   view_->SetBackgroundColor(ParseHexColor(color_name));
 }
 
-v8::Local<v8::Value> BrowserView::WebContents() {
+v8::Local<v8::Value> BrowserView::GetWebContents() {
   if (web_contents_.IsEmpty()) {
     return v8::Null(isolate());
   }
@@ -131,7 +131,7 @@ void BrowserView::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("setAutoResize", &BrowserView::SetAutoResize)
       .SetMethod("setBounds", &BrowserView::SetBounds)
       .SetMethod("setBackgroundColor", &BrowserView::SetBackgroundColor)
-      .SetProperty("webContents", &BrowserView::WebContents)
+      .SetProperty("webContents", &BrowserView::GetWebContents)
       .SetProperty("id", &BrowserView::ID);
 }
 
@@ -154,6 +154,8 @@ void Initialize(v8::Local<v8::Object> exports,
       isolate, BrowserView::GetConstructor(isolate)->GetFunction());
   browser_view.SetMethod("fromId",
                           &mate::TrackableObject<BrowserView>::FromWeakMapID);
+  browser_view.SetMethod("getAllViews",
+                          &mate::TrackableObject<BrowserView>::GetAll);
   mate::Dictionary dict(isolate, exports);
   dict.Set("BrowserView", browser_view);
 }

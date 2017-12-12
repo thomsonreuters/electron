@@ -65,6 +65,7 @@ NativeWindow::NativeWindow(
       aspect_ratio_(0.0),
       parent_(parent),
       is_modal_(false),
+      is_osr_dummy_(false),
       inspectable_web_contents_(inspectable_web_contents),
       weak_factory_(this) {
   options.Get(options::kFrame, &has_frame_);
@@ -117,6 +118,14 @@ void NativeWindow::InitFromOptions(const mate::Dictionary& options) {
   bool center;
   if (options.Get(options::kX, &x) && options.Get(options::kY, &y)) {
     SetPosition(gfx::Point(x, y));
+
+#if defined(OS_WIN)
+    // FIXME(felixrieseberg): Dirty, dirty workaround for
+    // https://github.com/electron/electron/issues/10862
+    // Somehow, we need to call `SetBounds` twice to get
+    // usable results. The root cause is still unknown.
+    SetPosition(gfx::Point(x, y));
+#endif
   } else if (options.Get(options::kCenter, &center) && center) {
     Center();
   }
@@ -139,13 +148,11 @@ void NativeWindow::InitFromOptions(const mate::Dictionary& options) {
   } else {
     SetSizeConstraints(size_constraints);
   }
-#if defined(USE_X11)
+#if defined(OS_WIN) || defined(USE_X11)
   bool resizable;
   if (options.Get(options::kResizable, &resizable)) {
     SetResizable(resizable);
   }
-#endif
-#if defined(OS_WIN) || defined(USE_X11)
   bool closable;
   if (options.Get(options::kClosable, &closable)) {
     SetClosable(closable);
@@ -158,6 +165,10 @@ void NativeWindow::InitFromOptions(const mate::Dictionary& options) {
   bool has_shadow;
   if (options.Get(options::kHasShadow, &has_shadow)) {
     SetHasShadow(has_shadow);
+  }
+  double opacity;
+  if (options.Get(options::kOpacity, &opacity)) {
+    SetOpacity(opacity);
   }
   bool top;
   if (options.Get(options::kAlwaysOnTop, &top) && top) {
@@ -334,6 +345,24 @@ void NativeWindow::SetParentWindow(NativeWindow* parent) {
 }
 
 void NativeWindow::SetAutoHideCursor(bool auto_hide) {
+}
+
+void NativeWindow::SelectPreviousTab() {
+}
+
+void NativeWindow::SelectNextTab() {
+}
+
+void NativeWindow::MergeAllWindows() {
+}
+
+void NativeWindow::MoveTabToNewWindow() {
+}
+
+void NativeWindow::ToggleTabBar() {
+}
+
+void NativeWindow::AddTabbedWindow(NativeWindow* window) {
 }
 
 void NativeWindow::SetVibrancy(const std::string& filename) {

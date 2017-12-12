@@ -1,7 +1,12 @@
 {
   'variables': {
     # The libraries brightray will be compiled to.
-    'linux_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss'
+    'linux_system_libraries': 'gtk+-3.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
+    'conditions': [
+      ['target_arch=="mips64el"', {
+        'linux_system_libraries': '<(linux_system_libraries) libpulse',
+      }],
+    ],
   },
   'includes': [
     'filenames.gypi',
@@ -69,21 +74,29 @@
           },
           'cflags': [
             '<!@(<(pkg-config) --cflags <(linux_system_libraries))',
-            # Needed by using libgtkui:
-            '-Wno-deprecated-register',
-            '-Wno-sentinel',
-          ],
-          'cflags_cc': [
-            '-Wno-reserved-user-defined-literal',
           ],
           'direct_dependent_settings': {
             'cflags': [
               '<!@(<(pkg-config) --cflags <(linux_system_libraries))',
-              '-Wno-deprecated-register',
-              '-Wno-sentinel',
             ],
           },
           'conditions': [
+            ['clang==1', {
+              'cflags_cc': [
+                '-Wno-reserved-user-defined-literal',
+              ],
+              'cflags': [
+                # Needed by using libgtkui:
+                '-Wno-deprecated-register',
+                '-Wno-sentinel',
+              ],
+              'direct_dependent_settings': {
+                'cflags': [
+                  '-Wno-deprecated-register',
+                  '-Wno-sentinel',
+                ],
+              },
+            }],
             ['libchromiumcontent_component', {
               'link_settings': {
                 'libraries': [
@@ -99,6 +112,10 @@
                   '<(libchromiumcontent_dir)/libyuv.a',
                   '<(libchromiumcontent_dir)/librenderer.a',
                   '<(libchromiumcontent_dir)/libsecurity_state.a',
+                  # components/network_session_configurator/common/
+                  '<(libchromiumcontent_dir)/libcommon.a',
+                  # services/device/wake_lock/power_save_blocker/
+                  '<(libchromiumcontent_dir)/libpower_save_blocker.a',
                   # Friends of libpdf.a:
                   # On Linux we have to use "--whole-archive" to include
                   # all symbols, otherwise there will be plenty of
@@ -152,6 +169,14 @@
                 ],
               },
             }],
+            # On ARM64 libchromiumcontent always links to system libfreetype
+            ['target_arch=="arm64"', {
+              'link_settings': {
+                'libraries': [
+                  '-lfreetype',
+                ],
+              },
+            }],
           ],
         }],  # OS=="linux"
         ['OS=="mac"', {
@@ -180,6 +205,10 @@
                   '<(libchromiumcontent_dir)/libyuv.a',
                   '<(libchromiumcontent_dir)/librenderer.a',
                   '<(libchromiumcontent_dir)/libsecurity_state.a',
+                  # components/network_session_configurator/common/
+                  '<(libchromiumcontent_dir)/libcommon.a',
+                  # services/device/wake_lock/power_save_blocker/
+                  '<(libchromiumcontent_dir)/libpower_save_blocker.a',
                   # Friends of libpdf.a:
                   '<(libchromiumcontent_dir)/libpdf.a',
                   '<(libchromiumcontent_dir)/libppapi_cpp_objects.a',
@@ -199,7 +228,6 @@
                   '<(libchromiumcontent_dir)/libjavascript.a',
                   '<(libchromiumcontent_dir)/libpdfwindow.a',
                   '<(libchromiumcontent_dir)/libfx_agg.a',
-                  '<(libchromiumcontent_dir)/libfx_freetype.a',
                   '<(libchromiumcontent_dir)/libfx_lcms2.a',
                   '<(libchromiumcontent_dir)/libfx_libopenjpeg.a',
                   '<(libchromiumcontent_dir)/libfx_zlib.a',
@@ -273,6 +301,10 @@
                   '<(libchromiumcontent_dir)/libyuv.lib',
                   '<(libchromiumcontent_dir)/renderer.lib',
                   '<(libchromiumcontent_dir)/security_state.lib',
+                  # components/network_session_configurator/common/
+                  '<(libchromiumcontent_dir)/common.lib',
+                  # services/device/wake_lock/power_save_blocker/
+                  '<(libchromiumcontent_dir)/power_save_blocker.lib',
                   # Friends of pdf.lib:
                   '<(libchromiumcontent_dir)/pdf.lib',
                   '<(libchromiumcontent_dir)/ppapi_cpp_objects.lib',

@@ -11,6 +11,8 @@
     'chromeos': 0,
     # Reflects node's config.gypi.
     'component%': 'static_library',
+    'debug_http2': 'false',
+    'debug_nghttp2': 'false',
     'python': 'python',
     'openssl_fips': '',
     'openssl_no_asm': 1,
@@ -48,7 +50,7 @@
   # Settings to compile node under Windows.
   'target_defaults': {
     'target_conditions': [
-      ['_target_name in ["libuv", "http_parser", "openssl", "openssl-cli", "cares", "node", "zlib"]', {
+      ['_target_name in ["libuv", "http_parser", "openssl", "openssl-cli", "cares", "node", "zlib", "nghttp2"]', {
         'msvs_disabled_warnings': [
           4003,  # not enough actual parameters for macro 'V'
           4013,  # 'free' undefined; assuming extern returning int
@@ -109,20 +111,25 @@
         'conditions': [
           ['OS=="linux"', {
             'cflags': [
-              '-Wno-parentheses-equality',
               '-Wno-unused-function',
-              '-Wno-sometimes-uninitialized',
-              '-Wno-pointer-sign',
-              '-Wno-string-plus-int',
               '-Wno-unused-variable',
               '-Wno-unused-value',
               '-Wno-deprecated-declarations',
               '-Wno-return-type',
-              '-Wno-shift-negative-value',
               '-Wno-format',
               '-Wno-varargs', # https://git.io/v6Olj
               # Required when building as shared library.
               '-fPIC',
+            ],
+          }],
+          ['OS=="linux" and clang==1', {
+            'cflags': [
+              '-Wno-pointer-sign',
+              '-Wno-parentheses-equality',
+              '-Wno-sometimes-uninitialized',
+              '-Wno-string-plus-int',
+              '-Wno-shift-negative-value',
+              '-Wno-reserved-user-defined-literal',
             ],
           }],
         ],
@@ -134,6 +141,12 @@
           '<(libchromiumcontent_src_dir)/third_party/icu/source/i18n',
           '<(libchromiumcontent_src_dir)/v8',
           '<(libchromiumcontent_src_dir)/v8/include',
+        ],
+        'defines': [
+          # Export V8 symbols from node.dll / libnode.so
+          'BUILDING_V8_SHARED',
+          'BUILDING_V8_PLATFORM_SHARED',
+          'BUILDING_V8_BASE_SHARED',
         ],
         'conditions': [
           ['OS=="mac" and libchromiumcontent_component==0', {
@@ -240,6 +253,8 @@
       4302,  # (atldlgs.h) 'type cast': truncation from 'LPCTSTR' to 'WORD'
       4458,  # (atldlgs.h) declaration of 'dwCommonButtons' hides class member
       4503,  # decorated name length exceeded, name was truncated
+      4530,  # C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc
+      4577,  # 'noexcept' used with no exception handling mode specified
       4714,  # (atomicstring.h) function marked as __forceinline not inlined
       4800,  # (v8.h) forcing value to bool 'true' or 'false'
       4819,  # The file contains a character that cannot be represented in the current code page

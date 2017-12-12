@@ -17,6 +17,8 @@
 #include "base/strings/string_util.h"
 #include "native_mate/object_template_builder.h"
 #include "net/base/data_url.h"
+#include "third_party/skia/include/core/SkBitmap.h"
+#include "third_party/skia/include/core/SkImageInfo.h"
 #include "third_party/skia/include/core/SkPixelRef.h"
 #include "ui/base/layout.h"
 #include "ui/base/webui/web_ui_util.h"
@@ -93,9 +95,20 @@ bool AddImageSkiaRep(gfx::ImageSkia* image,
   std::unique_ptr<SkBitmap> decoded(new SkBitmap());
 
   // Try PNG first.
-  if (!gfx::PNGCodec::Decode(data, size, decoded.get()))
+  if (!gfx::PNGCodec::Decode(data, size, decoded.get())) {
     // Try JPEG.
     decoded = gfx::JPEGCodec::Decode(data, size);
+    if (decoded) {
+      // `JPEGCodec::Decode()` doesn't tell `SkBitmap` instance it creates
+      // that all of its pixels are opaque, that's why the bitmap gets
+      // an alpha type `kPremul_SkAlphaType` instead of `kOpaque_SkAlphaType`.
+      // Let's fix it here.
+      // TODO(alexeykuzmin): This workaround should be removed
+      // when the `JPEGCodec::Decode()` code is fixed.
+      // See https://github.com/electron/electron/issues/11294.
+      decoded->setAlphaType(SkAlphaType::kOpaque_SkAlphaType);
+    }
+  }
 
   if (!decoded) {
     // Try Bitmap
@@ -541,6 +554,13 @@ mate::Handle<NativeImage> NativeImage::CreateFromDataURL(
   return CreateEmpty(isolate);
 }
 
+#if !defined(OS_MACOSX)
+mate::Handle<NativeImage> NativeImage::CreateFromNamedImage(
+  mate::Arguments* args, const std::string& name) {
+  return CreateEmpty(args->isolate());
+}
+#endif
+
 // static
 void NativeImage::BuildPrototype(
     v8::Isolate* isolate, v8::Local<v8::FunctionTemplate> prototype) {
@@ -609,6 +629,8 @@ void Initialize(v8::Local<v8::Object> exports, v8::Local<v8::Value> unused,
   dict.SetMethod("createFromBuffer", &atom::api::NativeImage::CreateFromBuffer);
   dict.SetMethod("createFromDataURL",
                  &atom::api::NativeImage::CreateFromDataURL);
+  dict.SetMethod("createFromNamedImage",
+                 &atom::api::NativeImage::CreateFromNamedImage);
 }
 
 }  // namespace

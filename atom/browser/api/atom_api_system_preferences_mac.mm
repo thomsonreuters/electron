@@ -144,6 +144,21 @@ v8::Local<v8::Value> SystemPreferences::GetUserDefault(
   }
 }
 
+void SystemPreferences::RegisterDefaults(mate::Arguments* args) {
+  base::DictionaryValue value;
+  
+  if(!args->GetNext(&value)) {
+    args->ThrowError("Invalid userDefault data provided");
+  } else {
+    @try {
+      NSDictionary* dict = DictionaryValueToNSDictionary(value);
+      [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
+    } @catch (NSException* exception) {
+      args->ThrowError("Invalid userDefault data provided");
+    }
+  }
+}
+
 void SystemPreferences::SetUserDefault(const std::string& name,
                                        const std::string& type,
                                        mate::Arguments* args) {
@@ -227,6 +242,11 @@ void SystemPreferences::SetUserDefault(const std::string& name,
     args->ThrowError("Invalid type: " + type);
     return;
   }
+}
+
+void SystemPreferences::RemoveUserDefault(const std::string& name) {
+  NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+  [defaults removeObjectForKey:base::SysUTF8ToNSString(name)];
 }
 
 bool SystemPreferences::IsDarkMode() {

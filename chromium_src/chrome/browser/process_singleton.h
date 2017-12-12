@@ -18,7 +18,7 @@
 #include "base/logging.h"
 #include "base/memory/ref_counted.h"
 #include "base/process/process.h"
-#include "base/threading/non_thread_safe.h"
+#include "base/sequence_checker.h"
 #include "ui/gfx/native_widget_types.h"
 
 #if defined(OS_POSIX) && !defined(OS_ANDROID)
@@ -44,7 +44,7 @@ class CommandLine;
 // - the Windows implementation uses an invisible global message window;
 // - the Linux implementation uses a Unix domain socket in the user data dir.
 
-class ProcessSingleton : public base::NonThreadSafe {
+class ProcessSingleton {
  public:
   enum NotifyResult {
     PROCESS_NONE,
@@ -74,6 +74,8 @@ class ProcessSingleton : public base::NonThreadSafe {
   // TODO(brettw): Make the implementation of this method non-platform-specific
   // by making Linux re-use the Windows implementation.
   NotifyResult NotifyOtherProcessOrCreate();
+  void StartListeningOnSocket();
+  void OnBrowserReady();
 
   // Sets ourself up as the singleton instance.  Returns true on success.  If
   // false is returned, we are not the singleton instance and the caller must
@@ -173,7 +175,11 @@ class ProcessSingleton : public base::NonThreadSafe {
   // because it posts messages between threads.
   class LinuxWatcher;
   scoped_refptr<LinuxWatcher> watcher_;
+  int sock_;
+  bool listen_on_ready_ = false;
 #endif
+
+  SEQUENCE_CHECKER(sequence_checker_);
 
   DISALLOW_COPY_AND_ASSIGN(ProcessSingleton);
 };

@@ -180,12 +180,13 @@ void CommonWebContentsDelegate::SetOwnerWindow(NativeWindow* owner_window) {
 void CommonWebContentsDelegate::SetOwnerWindow(
     content::WebContents* web_contents, NativeWindow* owner_window) {
   owner_window_ = owner_window ? owner_window->GetWeakPtr() : nullptr;
-  NativeWindowRelay* relay = new NativeWindowRelay(owner_window_);
+  auto relay = base::MakeUnique<NativeWindowRelay>(owner_window_);
+  auto relay_key = relay->key;
   if (owner_window) {
-    web_contents->SetUserData(relay->key, relay);
+    web_contents->SetUserData(relay_key, std::move(relay));
   } else {
-    web_contents->RemoveUserData(relay->key);
-    delete relay;
+    web_contents->RemoveUserData(relay_key);
+    relay.reset();
   }
 }
 
@@ -242,7 +243,8 @@ void CommonWebContentsDelegate::RunFileChooser(
     content::RenderFrameHost* render_frame_host,
     const content::FileChooserParams& params) {
   if (!web_dialog_helper_)
-    web_dialog_helper_.reset(new WebDialogHelper(owner_window()));
+    web_dialog_helper_.reset(new WebDialogHelper(
+        owner_window(), owner_window()->is_offscreen_dummy()));
   web_dialog_helper_->RunFileChooser(render_frame_host, params);
 }
 
@@ -250,7 +252,8 @@ void CommonWebContentsDelegate::EnumerateDirectory(content::WebContents* guest,
                                                    int request_id,
                                                    const base::FilePath& path) {
   if (!web_dialog_helper_)
-    web_dialog_helper_.reset(new WebDialogHelper(owner_window()));
+    web_dialog_helper_.reset(new WebDialogHelper(
+        owner_window(), owner_window()->is_offscreen_dummy()));
   web_dialog_helper_->EnumerateDirectory(guest, request_id, path);
 }
 
@@ -298,6 +301,7 @@ void CommonWebContentsDelegate::DevToolsSaveToFile(
   } else {
     file_dialog::DialogSettings settings;
     settings.parent_window = owner_window();
+    settings.force_detached = owner_window()->is_offscreen_dummy();
     settings.title = url;
     settings.default_path = base::FilePath::FromUTF8Unsafe(url);
     if (!file_dialog::ShowSaveDialog(settings, &path)) {
@@ -364,6 +368,7 @@ void CommonWebContentsDelegate::DevToolsAddFileSystem(
     std::vector<base::FilePath> paths;
     file_dialog::DialogSettings settings;
     settings.parent_window = owner_window();
+    settings.force_detached = owner_window()->is_offscreen_dummy();
     settings.properties = file_dialog::FILE_DIALOG_OPEN_DIRECTORY;
     if (!file_dialog::ShowOpenDialog(settings, &paths))
       return;

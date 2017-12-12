@@ -9,13 +9,15 @@
 #include "atom/common/native_mate_converters/gfx_converter.h"
 #include "atom/common/native_mate_converters/image_converter.h"
 #include "atom/common/native_mate_converters/string16_converter.h"
-#include "atom/common/node_includes.h"
 #include "base/strings/utf_string_conversions.h"
 #include "brightray/browser/browser_client.h"
 #include "native_mate/constructor.h"
 #include "native_mate/dictionary.h"
 #include "native_mate/object_template_builder.h"
 #include "url/gurl.h"
+// Must be the last in the includes list.
+// See https://github.com/electron/electron/issues/10363
+#include "atom/common/node_includes.h"
 
 namespace mate {
 template<>
@@ -169,14 +171,22 @@ void Notification::NotificationDisplayed() {
 }
 
 void Notification::NotificationDestroyed() {
-  Emit("close");
 }
 
 void Notification::NotificationClosed() {
+  Emit("close");
+}
+
+void Notification::Close() {
+  if (notification_) {
+    notification_->Dismiss();
+    notification_.reset();
+  }
 }
 
 // Showing notifications
 void Notification::Show() {
+  Close();
   if (presenter_) {
     notification_ = presenter_->CreateNotification(this);
     if (notification_) {
@@ -207,6 +217,7 @@ void Notification::BuildPrototype(v8::Isolate* isolate,
   mate::ObjectTemplateBuilder(isolate, prototype->PrototypeTemplate())
       .MakeDestroyable()
       .SetMethod("show", &Notification::Show)
+      .SetMethod("close", &Notification::Close)
       .SetProperty("title", &Notification::GetTitle, &Notification::SetTitle)
       .SetProperty("subtitle", &Notification::GetSubtitle,
                    &Notification::SetSubtitle)

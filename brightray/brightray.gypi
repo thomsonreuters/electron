@@ -54,11 +54,6 @@
         'WarningLevel': '4',
         'WarnAsError': 'true',
         'DebugInformationFormat': '3',
-        # Programs that use the Standard C++ library must be compiled with
-        # C++
-        # exception handling enabled.
-        # http://support.microsoft.com/kb/154419
-        'ExceptionHandling': 1,
       },
       'VCLinkerTool': {
         'GenerateDebugInformation': 'true',
@@ -94,6 +89,8 @@
         'defines': [
           # Needed by gin:
           'V8_USE_EXTERNAL_STARTUP_DATA',
+          # Special configuration for node:
+          'V8_PROMISE_INTERNAL_FIELD_COUNT=1',
           # From skia_for_chromium_defines.gypi:
           'SK_SUPPORT_LEGACY_GETTOPDEVICE',
           'SK_SUPPORT_LEGACY_BITMAP_CONFIG',
@@ -124,11 +121,18 @@
               'USE_NSS',  # deprecated after Chrome 45.
             ],
           }],
+          ['OS in ["linux", "mac"]', {
+            'defines': [
+              'WEBRTC_POSIX',
+              'UCHAR_TYPE=uint16_t',
+            ],
+          }],
           ['OS=="linux"', {
             'defines': [
               '_LARGEFILE_SOURCE',
               '_LARGEFILE64_SOURCE',
               '_FILE_OFFSET_BITS=64',
+              'WEBRTC_LINUX',
             ],
             'cflags_cc': [
               '-D__STRICT_ANSI__',
@@ -161,6 +165,7 @@
               # The usage of "webrtc/modules/desktop_capture/desktop_capture_options.h"
               # is required to see this macro.
               'WEBRTC_WIN',
+              'UCHAR_TYPE=wchar_t',
             ],
             'conditions': [
               ['target_arch=="x64"', {
@@ -239,9 +244,16 @@
             # perform FPO regardless, so we must explicitly disable.
             # We still want the false setting above to avoid having
             # "/Oy /Oy-" and warnings about overriding.
-            'AdditionalOptions': ['/Oy-'],
+            'AdditionalOptions': ['/Oy-', '/d2guard4'],
           },
           'VCLinkerTool': {
+            # Control Flow Guard is a security feature in Windows
+            # 8.1 and higher designed to prevent exploitation of
+            # indirect calls in executables.
+            # Control Flow Guard is enabled using the /d2guard4
+            # compiler setting in combination with the /guard:cf
+            # linker setting.
+            'AdditionalOptions': ['/guard:cf'],
             # Turn off incremental linking to save binary size.
             'LinkIncremental': '1',  # /INCREMENTAL:NO
           },
@@ -346,7 +358,7 @@
           ],
         },
       }],
-      ['OS=="linux"', {
+      ['OS=="linux" and clang==1', {
         'cflags': [
           '-Wno-inconsistent-missing-override',
           '-Wno-undefined-var-template', # https://crbug.com/604888

@@ -33,8 +33,8 @@ class URLRequestJobFactory;
 
 namespace brightray {
 
+class RequireCTDelegate;
 class DevToolsNetworkControllerHandle;
-class MediaDeviceIDSalt;
 class NetLog;
 
 class URLRequestContextGetter : public net::URLRequestContextGetter {
@@ -53,14 +53,10 @@ class URLRequestContextGetter : public net::URLRequestContextGetter {
     CreateURLRequestJobFactory(content::ProtocolHandlerMap* protocol_handlers);
     virtual net::HttpCache::BackendFactory* CreateHttpCacheBackendFactory(
         const base::FilePath& base_path);
-    virtual std::unique_ptr<net::CertVerifier> CreateCertVerifier();
+    virtual std::unique_ptr<net::CertVerifier> CreateCertVerifier(
+        RequireCTDelegate* ct_delegate);
     virtual net::SSLConfigService* CreateSSLConfigService();
     virtual std::vector<std::string> GetCookieableSchemes();
-    virtual net::TransportSecurityState::RequireCTDelegate*
-    GetRequireCTDelegate() {
-      return nullptr;
-    }
-    virtual MediaDeviceIDSalt* GetMediaDeviceIDSalt() { return nullptr; }
   };
 
   URLRequestContextGetter(
@@ -70,7 +66,6 @@ class URLRequestContextGetter : public net::URLRequestContextGetter {
       const base::FilePath& base_path,
       bool in_memory,
       scoped_refptr<base::SingleThreadTaskRunner> io_task_runner,
-      scoped_refptr<base::SingleThreadTaskRunner> file_task_runner,
       content::ProtocolHandlerMap* protocol_handlers,
       content::URLRequestInterceptorScopedVector protocol_interceptors);
   virtual ~URLRequestContextGetter();
@@ -82,9 +77,6 @@ class URLRequestContextGetter : public net::URLRequestContextGetter {
 
   net::HostResolver* host_resolver();
   net::URLRequestJobFactory* job_factory() const { return job_factory_; }
-  MediaDeviceIDSalt* GetMediaDeviceIDSalt() const {
-    return delegate_->GetMediaDeviceIDSalt();
-  }
 
  private:
   Delegate* delegate_;
@@ -94,10 +86,10 @@ class URLRequestContextGetter : public net::URLRequestContextGetter {
   base::FilePath base_path_;
   bool in_memory_;
   scoped_refptr<base::SingleThreadTaskRunner> io_task_runner_;
-  scoped_refptr<base::SingleThreadTaskRunner> file_task_runner_;
 
   std::string user_agent_;
 
+  std::unique_ptr<RequireCTDelegate> ct_delegate_;
   std::unique_ptr<net::ProxyConfigService> proxy_config_service_;
   std::unique_ptr<net::NetworkDelegate> network_delegate_;
   std::unique_ptr<net::URLRequestContextStorage> storage_;

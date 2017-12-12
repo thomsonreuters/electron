@@ -15,6 +15,7 @@
 #include "atom/browser/ui/autofill_popup.h"
 #include "content/common/cursors/webcursor.h"
 #include "content/public/browser/keyboard_event_processing_result.h"
+#include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_observer.h"
 #include "content/public/common/favicon_url.h"
 #include "native_mate/handle.h"
@@ -30,7 +31,7 @@ class InspectableWebContents;
 }
 
 namespace content {
-class ResourceRequestBodyImpl;
+class ResourceRequestBody;
 }
 
 namespace mate {
@@ -125,6 +126,7 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void Print(mate::Arguments* args);
   std::vector<printing::PrinterBasicInfo> GetPrinterList();
   void SetEmbedder(const WebContents* embedder);
+  void SetDevToolsWebContents(const WebContents* devtools);
   v8::Local<v8::Value> GetNativeView() const;
 
   // Print current page as PDF.
@@ -182,7 +184,6 @@ class WebContents : public mate::TrackableObject<WebContents>,
 
   // Methods for offscreen rendering
   bool IsOffScreen() const;
-  bool IsOffScreenOrEmbedderOffscreen() const;
   void OnPaint(const gfx::Rect& dirty_rect, const SkBitmap& bitmap);
   void StartPainting();
   void StopPainting();
@@ -209,7 +210,7 @@ class WebContents : public mate::TrackableObject<WebContents>,
       const std::string& frame_name,
       WindowOpenDisposition disposition,
       const std::vector<std::string>& features,
-      const scoped_refptr<content::ResourceRequestBodyImpl>& body);
+      const scoped_refptr<content::ResourceRequestBody>& body);
 
   // Returns the web preferences of current WebContents.
   v8::Local<v8::Value> GetWebPreferences(v8::Isolate* isolate);
@@ -248,12 +249,14 @@ class WebContents : public mate::TrackableObject<WebContents>,
                               const base::string16& message,
                               int32_t line_no,
                               const base::string16& source_id) override;
-  void WebContentsCreated(content::WebContents* source_contents,
-                          int opener_render_process_id,
-                          int opener_render_frame_id,
-                          const std::string& frame_name,
-                          const GURL& target_url,
-                          content::WebContents* new_contents) override;
+  void WebContentsCreated(
+      content::WebContents* source_contents,
+      int opener_render_process_id,
+      int opener_render_frame_id,
+      const std::string& frame_name,
+      const GURL& target_url,
+      content::WebContents* new_contents)
+      override;
   void AddNewContents(content::WebContents* source,
                       content::WebContents* new_contents,
                       WindowOpenDisposition disposition,
@@ -358,6 +361,11 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void DevToolsOpened() override;
   void DevToolsClosed() override;
 
+  void ShowAutofillPopup(content::RenderFrameHost* frame_host,
+                         const gfx::RectF& bounds,
+                         const std::vector<base::string16>& values,
+                         const std::vector<base::string16>& labels);
+
  private:
   AtomBrowserContext* GetBrowserContext() const;
 
@@ -384,6 +392,9 @@ class WebContents : public mate::TrackableObject<WebContents>,
   // Called when received a synchronous message from renderer to
   // get the zoom level.
   void OnGetZoomLevel(IPC::Message* reply_msg);
+
+  void InitZoomController(content::WebContents* web_contents,
+                          const mate::Dictionary& options);
 
   v8::Global<v8::Value> session_;
   v8::Global<v8::Value> devtools_web_contents_;
