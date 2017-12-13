@@ -64,7 +64,8 @@ new Promise((resolve, reject) => {
     JSON.stringify(packageJson, null, 2)
   )
 
-  return github.repos.getReleases({
+  return Promise.resolve()
+  /*return github.repos.getReleases({
     owner: 'electron',
     repo: 'electron'
   })
@@ -103,7 +104,7 @@ new Promise((resolve, reject) => {
 })
 .then((release) => {
   npmTag = release.prerelease ? 'beta' : 'latest'
-})
+*/})
 .then(() => childProcess.execSync('npm pack', { cwd: tempDir }))
 .then(() => {
   // test that the package can install electron prebuilt from github release
