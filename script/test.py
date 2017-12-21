@@ -48,7 +48,8 @@ def main():
   try:
     if args.use_instrumented_asar:
       install_instrumented_asar_file(resources_path)
-    subprocess.check_call([electron, 'spec'] + sys.argv[1:])
+    subprocess.check_call([electron, 'spec', '--disable-sandbox'] 
+	                                               + sys.argv[1:])
   except subprocess.CalledProcessError as e:
     returncode = e.returncode
   except KeyboardInterrupt:
